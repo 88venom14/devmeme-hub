@@ -1,0 +1,217 @@
+import React, { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import { Send, Image as ImageIcon, Video, Link as LinkIcon, X, Hash, Trash2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useInvalidatePosts } from '../hooks/useInvalidatePosts';
+import { uploadPostMedia } from '../lib/storage';
+import { parseTags, attachTagsToPost } from '../lib/tags';
+
+const CreatePostPage: React.FC = () => {
+  const navigate = useNavigate();
+  const invalidatePosts = useInvalidatePosts();
+  const imageInput = useRef<HTMLInputElement>(null);
+  const videoInput = useRef<HTMLInputElement>(null);
+
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [githubUrl, setGithubUrl] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const tags = parseTags(tagsInput);
+
+  const createPost = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('You must be logged in to post');
+
+      let imageUrl: string | null = null;
+      let videoUrl: string | null = null;
+
+      if (imageFile) imageUrl = await uploadPostMedia(imageFile, user.id);
+      if (videoFile) videoUrl = await uploadPostMedia(videoFile, user.id);
+
+      const { data, error } = await supabase
+        .from('posts')
+        .insert({
+          user_id: user.id,
+          title: title.trim(),
+          content_md: content.trim() || null,
+          github_url: githubUrl.trim() || null,
+          image_url: imageUrl,
+          video_url: videoUrl,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (tags.length > 0) await attachTagsToPost(data.id, tags);
+
+      return data;
+    },
+    onSuccess: (data) => {
+      invalidatePosts();
+      navigate(`/post/${data.id}`);
+    },
+    onError: (err: Error) => setErrorMsg(err.message),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || createPost.isPending) return;
+    setErrorMsg(null);
+    createPost.mutate();
+  };
+
+  const previewBlock = (file: File, kind: 'image' | 'video', clear: () => void) => (
+    <div style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+      {kind === 'image' ? (
+        <img src={URL.createObjectURL(file)} alt="preview" style={{ width: '100%', display: 'block' }} />
+      ) : (
+        <video src={URL.createObjectURL(file)} controls style={{ width: '100%', display: 'block', backgroundColor: '#000' }} />
+      )}
+      <button
+        type="button"
+        onClick={clear}
+        title="Remove"
+        style={{
+          position: 'absolute', top: 8, right: 8, padding: 6,
+          background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer',
+        }}
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Create New Post</h1>
+        <button onClick={() => navigate(-1)} className="btn btn-sm">
+          <X size={16} />
+          <span>Cancel</span>
+        </button>
+      </div>
+
+      <div className="card" style={{ padding: '24px' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Title</label>
+            <input
+              type="text" placeholder="Give your post a title..."
+              style={{ width: '100%' }}
+              value={title} onChange={(e) => setTitle(e.target.value)} required
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Content (Markdown supported)</label>
+            <textarea
+              placeholder="Share your thoughts, code snippets, or project details..."
+              style={{ width: '100%', minHeight: '200px', resize: 'vertical' }}
+              value={content} onChange={(e) => setContent(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>GitHub Repository URL</label>
+            <div style={{ position: 'relative' }}>
+              <LinkIcon size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+              <input
+                type="url" placeholder="https://github.com/username/repo"
+                style={{ width: '100%', paddingLeft: '36px' }}
+                value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Tags</label>
+            <div style={{ position: 'relative' }}>
+              <Hash size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+              <input
+                type="text"
+                placeholder="react, typescript, supabase"
+                style={{ width: '100%', paddingLeft: '36px' }}
+                value={tagsInput} onChange={(e) => setTagsInput(e.target.value)}
+              />
+            </div>
+            <p className="text-secondary" style={{ fontSize: '12px', marginTop: '4px' }}>
+              Comma- or space-separated. Lowercase letters, digits, dash and underscore (max 30 chars each).
+            </p>
+            {tags.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                {tags.map((t) => (
+                  <span key={t} style={{
+                    padding: '3px 10px', backgroundColor: 'var(--bg-main)',
+                    border: '1px solid var(--border-color)', borderRadius: '20px',
+                    fontSize: '12px', color: 'var(--text-secondary)',
+                  }}>#{t}</span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Media</label>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <input
+                ref={imageInput} type="file" accept="image/*" hidden
+                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+              />
+              <input
+                ref={videoInput} type="file" accept="video/*" hidden
+                onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+              />
+              <button
+                type="button" className="btn"
+                onClick={() => imageInput.current?.click()}
+                style={{ flex: 1, padding: '12px', flexDirection: 'column', gap: '8px' }}
+              >
+                <ImageIcon size={24} />
+                <span style={{ fontSize: '12px' }}>{imageFile ? 'Change Image' : 'Upload Image'}</span>
+              </button>
+              <button
+                type="button" className="btn"
+                onClick={() => videoInput.current?.click()}
+                style={{ flex: 1, padding: '12px', flexDirection: 'column', gap: '8px' }}
+              >
+                <Video size={24} />
+                <span style={{ fontSize: '12px' }}>{videoFile ? 'Change Video' : 'Upload Video'}</span>
+              </button>
+            </div>
+            {(imageFile || videoFile) && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                {imageFile && previewBlock(imageFile, 'image', () => setImageFile(null))}
+                {videoFile && previewBlock(videoFile, 'video', () => setVideoFile(null))}
+              </div>
+            )}
+            <p className="text-secondary" style={{ fontSize: '12px', marginTop: '6px' }}>
+              Max 50 MB. PNG / JPG / GIF / WEBP / MP4 / WEBM / MOV.
+            </p>
+          </div>
+
+          {errorMsg && (
+            <div style={{ color: 'var(--error)', fontSize: '13px' }} className="mono">
+              {errorMsg}
+            </div>
+          )}
+
+          <div style={{ marginTop: '12px', paddingTop: '24px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end' }}>
+            <button type="submit" className="btn btn-primary" disabled={!title.trim() || createPost.isPending} style={{ padding: '10px 24px' }}>
+              <Send size={18} style={{ marginRight: '8px' }} />
+              <span>{createPost.isPending ? 'Publishing...' : 'Publish Post'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default CreatePostPage;
