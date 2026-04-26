@@ -48,7 +48,7 @@ const App: React.FC = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename="/devmeme">
         <Routes>
           <Route path="/login" element={!session ? <LoginPage /> : <Navigate to="/" />} />
 
