@@ -1,20 +1,12 @@
 import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
-import {
-  Home,
-  PlusSquare,
-  User,
-  Settings,
-  Bookmark,
-  Users,
-  LogOut,
-  UserCircle,
-} from 'lucide-react';
+import { Bookmark, Users, LogOut } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import SearchBar from './SearchBar';
 import { useTopTags } from '../../hooks/useTopTags';
 import { useQuery } from '@tanstack/react-query';
+import { HomeIcon, NewPostIcon, ProfileIcon, SettingsIcon } from '../icons';
 
 interface AppShellProps {
   session: Session | null;
@@ -47,7 +39,7 @@ const AppShell: React.FC<AppShellProps> = ({ session }) => {
       <header className="top-nav">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
           <Link to="/feed" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-primary)', fontWeight: 'bold', fontSize: '1.2rem' }}>
-            <svg height="24" width="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path clip-rule="evenodd" d="M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z" fill="#D97757" fill-rule="evenodd" /></svg>
+            <svg height="24" width="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path clipRule="evenodd" d="M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z" fill="#D97757" fillRule="evenodd" /></svg>
             <span>DevMeme Hub</span>
           </Link>
 
@@ -59,7 +51,7 @@ const AppShell: React.FC<AppShellProps> = ({ session }) => {
             {session ? (
               <>
                 <Link to="/post/new" className="btn btn-primary btn-sm">
-                  <PlusSquare size={16} />
+                  <NewPostIcon size={16} color="currentColor" />
                   <span>Создать</span>
                 </Link>
                 <button onClick={handleLogout} className="btn btn-sm" title="Выйти">
@@ -74,10 +66,10 @@ const AppShell: React.FC<AppShellProps> = ({ session }) => {
       </header>
 
       <nav className="sub-nav">
-        <Link to="/post/new" className="sub-nav-link"><PlusSquare size={18} />Новый пост</Link>
-        <Link to="/feed" className="sub-nav-link"><Home size={18} />Лента</Link>
+        <Link to="/post/new" className="sub-nav-link"><NewPostIcon size={18} color="currentColor" />Новый пост</Link>
+        <Link to="/feed" className="sub-nav-link"><HomeIcon size={18} color="currentColor" />Лента</Link>
         {session && myProfile && (
-          <Link to={`/profile/${myProfile.username}`} className="sub-nav-link"><User size={18} />Профиль</Link>
+          <Link to={`/profile/${myProfile.username}`} className="sub-nav-link"><ProfileIcon size={18} color="currentColor" />Профиль</Link>
         )}
       </nav>
 
@@ -116,7 +108,7 @@ const UserCard: React.FC<{ session: NonNullable<AppShellProps['session']>; myPro
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
         <Link to={`/profile/${myProfile.username}`} className="sub-nav-link" style={{ padding: '6px 8px', borderRadius: '6px', fontSize: '13px' }}>
-          <UserCircle size={16} />Профиль
+          <ProfileIcon size={16} color="currentColor" />Профиль
         </Link>
         <Link to="/following" className="sub-nav-link" style={{ padding: '6px 8px', borderRadius: '6px', fontSize: '13px' }}>
           <Users size={16} />Подписки
@@ -125,7 +117,7 @@ const UserCard: React.FC<{ session: NonNullable<AppShellProps['session']>; myPro
           <Bookmark size={16} />Сохранённые
         </Link>
         <Link to="/settings" className="sub-nav-link" style={{ padding: '6px 8px', borderRadius: '6px', fontSize: '13px' }}>
-          <Settings size={16} />Настройки
+          <SettingsIcon size={16} color="currentColor" />Настройки
         </Link>
       </div>
     </div>

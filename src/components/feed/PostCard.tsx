@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Star, MessageSquare, Share2, Code, ExternalLink, Bookmark } from 'lucide-react';
+import { Code, ExternalLink, Star } from 'lucide-react';
+import { LikeIcon, CommentIcon, ShareIcon } from '../icons';
 import ReactMarkdown from 'react-markdown';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -198,34 +199,31 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               border: 'none', background: 'transparent', padding: '4px',
               color: interactions?.isStarred ? 'var(--accent-primary)' : 'var(--text-secondary)',
             }}
-            title={userId ? (interactions?.isStarred ? 'Убрать звезду' : 'Поставить звезду') : 'Войдите, чтобы оценить'}
+            title={userId ? (interactions?.isStarred ? 'Убрать лайк' : 'Лайк') : 'Войдите, чтобы оценить'}
           >
-            <Star size={18} fill={interactions?.isStarred ? 'currentColor' : 'none'} />
+            <LikeIcon size={18} filled={interactions?.isStarred} color={interactions?.isStarred ? 'var(--accent-primary)' : 'var(--text-secondary)'} />
             <span style={{ marginLeft: '6px' }}>{starCount}</span>
           </button>
           <Link to={`/post/${post.id}`} className="btn btn-sm" style={{ border: 'none', background: 'transparent', padding: '4px', color: 'var(--text-secondary)' }}>
-            <MessageSquare size={18} />
+            <CommentIcon size={18} color="var(--text-secondary)" />
             <span style={{ marginLeft: '6px' }}>{commentCount}</span>
           </Link>
           <button
             onClick={() => toggleSave.mutate()}
             disabled={!userId || toggleSave.isPending}
             className="btn btn-sm"
-            style={{
-              border: 'none', background: 'transparent', padding: '4px',
-              color: interactions?.isSaved ? 'var(--accent-primary)' : 'var(--text-secondary)',
-            }}
+            style={{ border: 'none', background: 'transparent', padding: '4px' }}
             title={userId ? (interactions?.isSaved ? 'Убрать из сохранённых' : 'Сохранить') : 'Войдите, чтобы сохранить'}
           >
-            <Bookmark size={18} fill={interactions?.isSaved ? 'currentColor' : 'none'} />
+            <Star size={18} fill={interactions?.isSaved ? 'currentColor' : 'none'} color={interactions?.isSaved ? 'var(--accent-primary)' : 'var(--text-secondary)'} />
           </button>
           <button
             onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/#/post/${post.id}`)}
             className="btn btn-sm"
-            style={{ border: 'none', background: 'transparent', padding: '4px', color: 'var(--text-secondary)', marginLeft: 'auto' }}
+            style={{ border: 'none', background: 'transparent', padding: '4px', marginLeft: 'auto' }}
             title="Копировать ссылку"
           >
-            <Share2 size={18} />
+            <ShareIcon size={18} color="var(--text-secondary)" />
           </button>
         </div>
       </div>
