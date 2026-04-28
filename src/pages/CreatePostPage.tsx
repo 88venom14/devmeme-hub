@@ -7,6 +7,26 @@ import { useInvalidatePosts } from '../hooks/useInvalidatePosts';
 import { uploadPostMedia } from '../lib/storage';
 import { parseTags, attachTagsToPost } from '../lib/tags';
 
+const LIMITS = {
+  title: 150,
+  content: 10_000,
+  githubUrl: 500,
+  tagsInput: 200,
+  maxTags: 10,
+};
+
+const CharCount: React.FC<{ value: string; max: number }> = ({ value, max }) => {
+  const len = value.length;
+  const near = len >= max * 0.8;
+  const over = len > max;
+  if (!near) return null;
+  return (
+    <span className="mono" style={{ fontSize: '11px', color: over ? 'var(--error)' : 'var(--text-secondary)', marginLeft: '8px' }}>
+      {len}/{max}
+    </span>
+  );
+};
+
 const CreatePostPage: React.FC = () => {
   const navigate = useNavigate();
   const invalidatePosts = useInvalidatePosts();
@@ -27,6 +47,9 @@ const CreatePostPage: React.FC = () => {
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Необходимо войти в аккаунт');
+      if (title.trim().length > LIMITS.title) throw new Error(`Заголовок не может превышать ${LIMITS.title} символов`);
+      if (content.length > LIMITS.content) throw new Error(`Контент не может превышать ${LIMITS.content} символов`);
+      if (tags.length > LIMITS.maxTags) throw new Error(`Максимум ${LIMITS.maxTags} тегов`);
 
       let imageUrl: string | null = null;
       let videoUrl: string | null = null;
@@ -63,6 +86,7 @@ const CreatePostPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || createPost.isPending) return;
+    if (title.length > LIMITS.title || content.length > LIMITS.content || tags.length > LIMITS.maxTags) return;
     setErrorMsg(null);
     createPost.mutate();
   };
@@ -101,20 +125,29 @@ const CreatePostPage: React.FC = () => {
       <div className="card" style={{ padding: '24px' }}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Заголовок</label>
+            <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '8px' }}>
+              <label style={{ fontSize: '14px', fontWeight: 'bold' }}>Заголовок</label>
+              <CharCount value={title} max={LIMITS.title} />
+            </div>
             <input
               type="text" placeholder="Дайте посту заголовок..."
-              style={{ width: '100%' }}
-              value={title} onChange={(e) => setTitle(e.target.value)} required
+              style={{ width: '100%', borderColor: title.length > LIMITS.title ? 'var(--error)' : undefined }}
+              value={title}
+              onChange={(e) => setTitle(e.target.value.slice(0, LIMITS.title + 20))}
+              required
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Контент (поддерживается Markdown)</label>
+            <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '8px' }}>
+              <label style={{ fontSize: '14px', fontWeight: 'bold' }}>Контент (поддерживается Markdown)</label>
+              <CharCount value={content} max={LIMITS.content} />
+            </div>
             <textarea
               placeholder="Поделитесь мыслями, сниппетами или описанием проекта..."
-              style={{ width: '100%', minHeight: '200px', resize: 'vertical' }}
-              value={content} onChange={(e) => setContent(e.target.value)}
+              style={{ width: '100%', minHeight: '200px', resize: 'vertical', borderColor: content.length > LIMITS.content ? 'var(--error)' : undefined }}
+              value={content}
+              onChange={(e) => setContent(e.target.value.slice(0, LIMITS.content + 100))}
             />
           </div>
 
@@ -125,24 +158,35 @@ const CreatePostPage: React.FC = () => {
               <input
                 type="url" placeholder="https://github.com/username/repo"
                 style={{ width: '100%', paddingLeft: '36px' }}
-                value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)}
+                value={githubUrl}
+                onChange={(e) => setGithubUrl(e.target.value.slice(0, LIMITS.githubUrl))}
+                maxLength={LIMITS.githubUrl}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Теги</label>
+            <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '8px' }}>
+              <label style={{ fontSize: '14px', fontWeight: 'bold' }}>Теги</label>
+              {tags.length > 0 && (
+                <span className="mono" style={{ fontSize: '11px', color: tags.length > LIMITS.maxTags ? 'var(--error)' : 'var(--text-secondary)', marginLeft: '8px' }}>
+                  {tags.length}/{LIMITS.maxTags}
+                </span>
+              )}
+            </div>
             <div style={{ position: 'relative' }}>
               <Hash size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input
                 type="text"
                 placeholder="react, typescript, supabase"
                 style={{ width: '100%', paddingLeft: '36px' }}
-                value={tagsInput} onChange={(e) => setTagsInput(e.target.value)}
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value.slice(0, LIMITS.tagsInput))}
+                maxLength={LIMITS.tagsInput}
               />
             </div>
             <p className="text-secondary" style={{ fontSize: '12px', marginTop: '4px' }}>
-              Через запятую или пробел. Строчные буквы, цифры, тире и подчёркивание (макс. 30 символов).
+              Через запятую или пробел. Макс. {LIMITS.maxTags} тегов, каждый до 30 символов.
             </p>
             {tags.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
@@ -160,27 +204,13 @@ const CreatePostPage: React.FC = () => {
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Медиа</label>
             <div style={{ display: 'flex', gap: '12px' }}>
-              <input
-                ref={imageInput} type="file" accept="image/*" hidden
-                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-              />
-              <input
-                ref={videoInput} type="file" accept="video/*" hidden
-                onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
-              />
-              <button
-                type="button" className="btn"
-                onClick={() => imageInput.current?.click()}
-                style={{ flex: 1, padding: '12px', flexDirection: 'column', gap: '8px' }}
-              >
+              <input ref={imageInput} type="file" accept="image/*" hidden onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} />
+              <input ref={videoInput} type="file" accept="video/*" hidden onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)} />
+              <button type="button" className="btn" onClick={() => imageInput.current?.click()} style={{ flex: 1, padding: '12px', flexDirection: 'column', gap: '8px' }}>
                 <ImageIcon size={24} />
                 <span style={{ fontSize: '12px' }}>{imageFile ? 'Изменить фото' : 'Загрузить фото'}</span>
               </button>
-              <button
-                type="button" className="btn"
-                onClick={() => videoInput.current?.click()}
-                style={{ flex: 1, padding: '12px', flexDirection: 'column', gap: '8px' }}
-              >
+              <button type="button" className="btn" onClick={() => videoInput.current?.click()} style={{ flex: 1, padding: '12px', flexDirection: 'column', gap: '8px' }}>
                 <Video size={24} />
                 <span style={{ fontSize: '12px' }}>{videoFile ? 'Изменить видео' : 'Загрузить видео'}</span>
               </button>
@@ -203,7 +233,12 @@ const CreatePostPage: React.FC = () => {
           )}
 
           <div style={{ marginTop: '12px', paddingTop: '24px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="submit" className="btn btn-primary" disabled={!title.trim() || createPost.isPending} style={{ padding: '10px 24px' }}>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={!title.trim() || createPost.isPending || title.length > LIMITS.title || content.length > LIMITS.content || tags.length > LIMITS.maxTags}
+              style={{ padding: '10px 24px' }}
+            >
               <Send size={18} style={{ marginRight: '8px' }} />
               <span>{createPost.isPending ? 'Публикация...' : 'Опубликовать'}</span>
             </button>

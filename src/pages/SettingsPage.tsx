@@ -148,27 +148,45 @@ const SettingsPage: React.FC = () => {
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Имя пользователя</label>
                 <input
                   type="text" value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => setUsername(e.target.value.slice(0, 31))}
                   placeholder="dev_handle"
                   style={{ width: '100%' }}
                   autoComplete="username"
+                  maxLength={31}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Отображаемое имя</label>
+                <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '14px' }}>Отображаемое имя</label>
+                  {displayName.length >= 48 && (
+                    <span className="mono" style={{ fontSize: '11px', color: displayName.length > 60 ? 'var(--error)' : 'var(--text-secondary)', marginLeft: '8px' }}>
+                      {displayName.length}/60
+                    </span>
+                  )}
+                </div>
                 <input
                   type="text" placeholder="Ваше имя"
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  onChange={(e) => setDisplayName(e.target.value.slice(0, 60))}
                   style={{ width: '100%' }}
+                  maxLength={60}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>О себе</label>
+                <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '14px' }}>О себе</label>
+                  {bio.length >= 240 && (
+                    <span className="mono" style={{ fontSize: '11px', color: bio.length > 300 ? 'var(--error)' : 'var(--text-secondary)', marginLeft: '8px' }}>
+                      {bio.length}/300
+                    </span>
+                  )}
+                </div>
                 <textarea
                   style={{ width: '100%', minHeight: '80px' }}
                   placeholder="Расскажите о себе..."
-                  value={bio} onChange={(e) => setBio(e.target.value)}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value.slice(0, 300))}
+                  maxLength={300}
                 />
               </div>
               <div>
@@ -176,7 +194,9 @@ const SettingsPage: React.FC = () => {
                 <input
                   type="url" style={{ width: '100%' }}
                   placeholder="https://yourwebsite.com"
-                  value={website} onChange={(e) => setWebsite(e.target.value)}
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value.slice(0, 200))}
+                  maxLength={200}
                 />
               </div>
 

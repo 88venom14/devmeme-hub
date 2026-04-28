@@ -7,6 +7,18 @@ import { useInvalidatePosts } from '../../hooks/useInvalidatePosts';
 import { useSession } from '../../hooks/useSession';
 import { parseTags, attachTagsToPost } from '../../lib/tags';
 
+const LIMITS = { title: 150, description: 2_000, githubUrl: 500, tagsInput: 200, maxTags: 10 };
+
+const CharCount: React.FC<{ value: string; max: number }> = ({ value, max }) => {
+  const len = value.length;
+  if (len < max * 0.8) return null;
+  return (
+    <span className="mono" style={{ fontSize: '11px', color: len > max ? 'var(--error)' : 'var(--text-secondary)', marginLeft: '6px' }}>
+      {len}/{max}
+    </span>
+  );
+};
+
 const PostComposer: React.FC = () => {
   const invalidatePosts = useInvalidatePosts();
   const { session } = useSession();
@@ -33,9 +45,16 @@ const PostComposer: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const tags = parseTags(tagsInput);
+
+  const isOverLimit = title.length > LIMITS.title || description.length > LIMITS.description || tags.length > LIMITS.maxTags;
+
   const createPost = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error('Необходимо войти в аккаунт');
+      if (title.trim().length > LIMITS.title) throw new Error(`Заголовок не более ${LIMITS.title} символов`);
+      if (description.length > LIMITS.description) throw new Error(`Описание не более ${LIMITS.description} символов`);
+      if (tags.length > LIMITS.maxTags) throw new Error(`Максимум ${LIMITS.maxTags} тегов`);
 
       const { data, error } = await supabase
         .from('posts')
@@ -49,7 +68,6 @@ const PostComposer: React.FC = () => {
         .single();
       if (error) throw error;
 
-      const tags = parseTags(tagsInput);
       if (tags.length > 0) await attachTagsToPost(data.id, tags);
 
       return data;
@@ -64,7 +82,7 @@ const PostComposer: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || createPost.isPending) return;
+    if (!title.trim() || createPost.isPending || isOverLimit) return;
     createPost.mutate();
   };
 
@@ -85,36 +103,58 @@ const PostComposer: React.FC = () => {
               type="text" placeholder="Ваш последний мем или проект?"
               style={{ width: '100%', border: 'none', background: 'var(--bg-main)' }}
               onFocus={() => setIsExpanded(true)}
-              value={title} onChange={(e) => setTitle(e.target.value)}
+              value={title} onChange={(e) => setTitle(e.target.value.slice(0, LIMITS.title + 20))}
             />
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <input
-              type="text" placeholder="Заголовок поста"
-              style={{ width: '100%', fontWeight: 'bold' }}
-              value={title} onChange={(e) => setTitle(e.target.value)} autoFocus
-            />
-            <textarea
-              placeholder="Описание или Markdown-контент..."
-              style={{ width: '100%', minHeight: '100px', resize: 'vertical' }}
-              value={description} onChange={(e) => setDescription(e.target.value)}
-            />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '4px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Заголовок</span>
+                <CharCount value={title} max={LIMITS.title} />
+              </div>
+              <input
+                type="text" placeholder="Заголовок поста"
+                style={{ width: '100%', fontWeight: 'bold', borderColor: title.length > LIMITS.title ? 'var(--error)' : undefined }}
+                value={title} onChange={(e) => setTitle(e.target.value.slice(0, LIMITS.title + 20))} autoFocus
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '4px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Описание</span>
+                <CharCount value={description} max={LIMITS.description} />
+              </div>
+              <textarea
+                placeholder="Описание или Markdown-контент..."
+                style={{ width: '100%', minHeight: '100px', resize: 'vertical', borderColor: description.length > LIMITS.description ? 'var(--error)' : undefined }}
+                value={description} onChange={(e) => setDescription(e.target.value.slice(0, LIMITS.description + 100))}
+              />
+            </div>
+
             <div style={{ position: 'relative' }}>
               <LinkIcon size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input
                 type="text" placeholder="Ссылка на GitHub репозиторий (необязательно)"
                 style={{ width: '100%', paddingLeft: '36px' }}
-                value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)}
+                value={githubUrl} onChange={(e) => setGithubUrl(e.target.value.slice(0, LIMITS.githubUrl))}
               />
             </div>
-            <div style={{ position: 'relative' }}>
-              <Hash size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-              <input
-                type="text" placeholder="теги (например: react, supabase)"
-                style={{ width: '100%', paddingLeft: '36px' }}
-                value={tagsInput} onChange={(e) => setTagsInput(e.target.value)}
-              />
+
+            <div>
+              <div style={{ position: 'relative' }}>
+                <Hash size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                <input
+                  type="text" placeholder="теги (например: react, supabase)"
+                  style={{ width: '100%', paddingLeft: '36px' }}
+                  value={tagsInput} onChange={(e) => setTagsInput(e.target.value.slice(0, LIMITS.tagsInput))}
+                />
+              </div>
+              {tags.length > LIMITS.maxTags && (
+                <p className="mono" style={{ fontSize: '11px', color: 'var(--error)', marginTop: '4px' }}>
+                  Максимум {LIMITS.maxTags} тегов (сейчас: {tags.length})
+                </p>
+              )}
             </div>
 
             {errorMsg && (
@@ -129,7 +169,7 @@ const PostComposer: React.FC = () => {
               </Link>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button type="button" className="btn btn-sm" onClick={() => setIsExpanded(false)}>Отмена</button>
-                <button type="submit" className="btn btn-primary btn-sm" disabled={!title.trim() || createPost.isPending}>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={!title.trim() || createPost.isPending || isOverLimit}>
                   <Send size={16} style={{ marginRight: '6px' }} />
                   {createPost.isPending ? 'Публикация...' : 'Опубликовать'}
                 </button>
