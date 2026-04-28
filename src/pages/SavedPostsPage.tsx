@@ -31,16 +31,18 @@ const SavedPostsPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Saved Posts</h1>
+      <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Сохранённые</h1>
 
-      {isLoading && <div className="mono text-secondary">LOADING_SAVED...</div>}
+      {isLoading && <div className="mono text-secondary">ЗАГРУЗКА...</div>}
       {error && <div className="mono" style={{ color: 'var(--error)' }}>{(error as Error).message}</div>}
 
       {posts && posts.length > 0 ? (
-        posts.map((post) => <PostCard key={post.id} post={post} />)
+        <div className="post-grid">
+          {posts.map((post) => <PostCard key={post.id} post={post} />)}
+        </div>
       ) : !isLoading ? (
         <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-          <div className="text-secondary">No saved posts yet.</div>
+          <div className="text-secondary">Нет сохранённых постов.</div>
         </div>
       ) : null}
     </div>

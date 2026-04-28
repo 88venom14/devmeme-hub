@@ -1,12 +1,31 @@
 import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link as LinkIcon, Send, Hash } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useInvalidatePosts } from '../../hooks/useInvalidatePosts';
+import { useSession } from '../../hooks/useSession';
 import { parseTags, attachTagsToPost } from '../../lib/tags';
 
 const PostComposer: React.FC = () => {
   const invalidatePosts = useInvalidatePosts();
+  const { session } = useSession();
+  const userId = session?.user.id;
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile', userId],
+    enabled: !!userId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('username, display_name, avatar_url')
+        .eq('id', userId!)
+        .single();
+      return data as { username: string; display_name: string | null; avatar_url: string | null } | null;
+    },
+  });
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [githubUrl, setGithubUrl] = useState('');
@@ -16,13 +35,12 @@ const PostComposer: React.FC = () => {
 
   const createPost = useMutation({
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('You must be logged in to post');
+      if (!userId) throw new Error('Необходимо войти в аккаунт');
 
       const { data, error } = await supabase
         .from('posts')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           title: title.trim(),
           description: description.trim() || null,
           github_url: githubUrl.trim() || null,
@@ -50,14 +68,21 @@ const PostComposer: React.FC = () => {
     createPost.mutate();
   };
 
+  const avatarSrc = profile?.avatar_url
+    || `https://api.dicebear.com/7.x/identicon/svg?seed=${profile?.username ?? 'anon'}`;
+
   return (
     <div className="card" style={{ padding: '16px' }}>
       <form onSubmit={handleSubmit}>
         {!isExpanded ? (
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '4px', backgroundColor: 'var(--bg-main)', flexShrink: 0 }} />
+            <img
+              src={avatarSrc}
+              alt="аватар"
+              style={{ width: '40px', height: '40px', borderRadius: '4px', backgroundColor: 'var(--bg-main)', flexShrink: 0 }}
+            />
             <input
-              type="text" placeholder="What's your latest tech meme or project?"
+              type="text" placeholder="Ваш последний мем или проект?"
               style={{ width: '100%', border: 'none', background: 'var(--bg-main)' }}
               onFocus={() => setIsExpanded(true)}
               value={title} onChange={(e) => setTitle(e.target.value)}
@@ -66,19 +91,19 @@ const PostComposer: React.FC = () => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <input
-              type="text" placeholder="Title of your post"
+              type="text" placeholder="Заголовок поста"
               style={{ width: '100%', fontWeight: 'bold' }}
               value={title} onChange={(e) => setTitle(e.target.value)} autoFocus
             />
             <textarea
-              placeholder="Description or Markdown content..."
+              placeholder="Описание или Markdown-контент..."
               style={{ width: '100%', minHeight: '100px', resize: 'vertical' }}
               value={description} onChange={(e) => setDescription(e.target.value)}
             />
             <div style={{ position: 'relative' }}>
               <LinkIcon size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input
-                type="text" placeholder="GitHub Repo URL (optional)"
+                type="text" placeholder="Ссылка на GitHub репозиторий (необязательно)"
                 style={{ width: '100%', paddingLeft: '36px' }}
                 value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)}
               />
@@ -86,7 +111,7 @@ const PostComposer: React.FC = () => {
             <div style={{ position: 'relative' }}>
               <Hash size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input
-                type="text" placeholder="tags (e.g. react, supabase)"
+                type="text" placeholder="теги (например: react, supabase)"
                 style={{ width: '100%', paddingLeft: '36px' }}
                 value={tagsInput} onChange={(e) => setTagsInput(e.target.value)}
               />
@@ -99,14 +124,14 @@ const PostComposer: React.FC = () => {
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-              <a href="/post/new" className="text-secondary" style={{ fontSize: '12px' }}>
-                Need media or full editor? →
-              </a>
+              <Link to="/post/new" className="text-secondary" style={{ fontSize: '12px' }}>
+                Нужны медиа или полный редактор? →
+              </Link>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button type="button" className="btn btn-sm" onClick={() => setIsExpanded(false)}>Cancel</button>
+                <button type="button" className="btn btn-sm" onClick={() => setIsExpanded(false)}>Отмена</button>
                 <button type="submit" className="btn btn-primary btn-sm" disabled={!title.trim() || createPost.isPending}>
                   <Send size={16} style={{ marginRight: '6px' }} />
-                  {createPost.isPending ? 'Posting...' : 'Share Post'}
+                  {createPost.isPending ? 'Публикация...' : 'Опубликовать'}
                 </button>
               </div>
             </div>

@@ -41,14 +41,16 @@ const TagPage: React.FC = () => {
         <span className="text-secondary">#</span>{name}
       </h1>
 
-      {isLoading && <div className="mono text-secondary">LOADING_TAG...</div>}
+      {isLoading && <div className="mono text-secondary">ЗАГРУЗКА...</div>}
       {error && <div className="mono" style={{ color: 'var(--error)' }}>{(error as Error).message}</div>}
 
       {posts && posts.length > 0 ? (
-        posts.map((post) => <PostCard key={post.id} post={post} />)
+        <div className="post-grid">
+          {posts.map((post) => <PostCard key={post.id} post={post} />)}
+        </div>
       ) : !isLoading ? (
         <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-          <div className="text-secondary">No posts with this tag yet.</div>
+          <div className="text-secondary">Постов с этим тегом пока нет.</div>
         </div>
       ) : null}
     </div>

@@ -38,7 +38,10 @@ const LoginPage: React.FC = () => {
     setMessage(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: window.location.origin },
+      options: { 
+        redirectTo: `https://fluttershy.horsefucker.ru/`,
+        scopes: 'user:email read:user',
+      },
     });
     if (error) {
       setMessage({
@@ -99,7 +102,7 @@ const LoginPage: React.FC = () => {
           <h1 style={{ fontSize: '2.2rem', fontWeight: 'bold' }}>DevMeme Hub</h1>
         </div>
         <p className="text-secondary" style={{ fontSize: '1rem' }}>
-          The social platform for technical memes and software projects.
+          Социальная платформа для технических мемов и IT-проектов.
         </p>
       </div>
 
@@ -111,7 +114,7 @@ const LoginPage: React.FC = () => {
             style={{ flex: 1 }}
             onClick={() => { setMode('signin'); setMessage(null); }}
           >
-            Sign in
+            Войти
           </button>
           <button
             type="button"
@@ -119,14 +122,14 @@ const LoginPage: React.FC = () => {
             style={{ flex: 1 }}
             onClick={() => { setMode('signup'); setMessage(null); }}
           >
-            Sign up
+            Регистрация
           </button>
         </div>
 
         <form onSubmit={handleEmail} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {mode === 'signup' && (
             <div>
-              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px' }}>Username</label>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px' }}>Имя пользователя</label>
               <input
                 type="text"
                 value={username}
@@ -138,7 +141,7 @@ const LoginPage: React.FC = () => {
             </div>
           )}
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px' }}>Email</label>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px' }}>Электронная почта</label>
             <input
               type="email"
               value={email}
@@ -150,7 +153,7 @@ const LoginPage: React.FC = () => {
             />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px' }}>Password</label>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px' }}>Пароль</label>
             <input
               type="password"
               value={password}
@@ -182,33 +185,33 @@ const LoginPage: React.FC = () => {
             style={{ marginTop: '4px', gap: '8px' }}
           >
             <Mail size={16} />
-            {busy ? 'Working...' : mode === 'signin' ? 'Sign in with email' : 'Create account'}
+            {busy ? 'Загрузка...' : mode === 'signin' ? 'Войти через email' : 'Создать аккаунт'}
           </button>
         </form>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '20px 0 16px' }}>
           <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
-          <span className="text-secondary" style={{ fontSize: '12px' }}>OR</span>
+          <span className="text-secondary" style={{ fontSize: '12px' }}>ИЛИ</span>
           <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <button onClick={() => handleOAuth('github')} className="btn" style={{ width: '100%', padding: '10px', gap: '12px', justifyContent: 'flex-start' }}>
             <GithubIcon />
-            <span>Continue with GitHub</span>
+            <span>Войти через GitHub</span>
           </button>
           <button onClick={() => handleOAuth('google')} className="btn" style={{ width: '100%', padding: '10px', gap: '12px', justifyContent: 'flex-start' }}>
             <GoogleIcon />
-            <span>Continue with Google</span>
+            <span>Войти через Google</span>
           </button>
           <button onClick={() => handleOAuth('twitch')} className="btn" style={{ width: '100%', padding: '10px', gap: '12px', justifyContent: 'flex-start' }}>
             <TwitchIcon />
-            <span>Continue with Twitch</span>
+            <span>Войти через Twitch</span>
           </button>
         </div>
 
         <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '11px', color: 'var(--text-secondary)' }}>
-          By continuing, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+          Продолжая, вы соглашаетесь с <a href="#">Условиями использования</a> и <a href="#">Политикой конфиденциальности</a>.
         </div>
       </div>
 

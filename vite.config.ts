@@ -18,5 +18,8 @@ export default defineConfig({
   build: {
     sourcemap: false,
     minify: 'esbuild'
+  },
+  define: {
+    'import.meta.env.VITE_REDIRECT_URL': JSON.stringify('https://88venom14.github.io/devmeme/auth/callback')
   }
 });

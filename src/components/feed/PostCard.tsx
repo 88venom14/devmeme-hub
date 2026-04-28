@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Star, MessageSquare, Share2, Code, ExternalLink, MoreHorizontal, Bookmark } from 'lucide-react';
+import { Star, MessageSquare, Share2, Code, ExternalLink, Bookmark } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { formatDistanceToNow } from 'date-fns';
+import { ru } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import type { GithubRepoData, PostWithMeta } from '../../lib/supabase';
 import { useSession } from '../../hooks/useSession';
@@ -85,57 +86,81 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   });
 
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ display: 'flex', gap: '12px', minWidth: 0, flex: 1 }}>
-          <Link to={`/profile/${profile?.id}`} style={{ flexShrink: 0 }}>
-            <img
-              src={profile?.avatar_url || `https://api.dicebear.com/7.x/identicon/svg?seed=${profile?.username ?? 'anon'}`}
-              alt={profile?.username ?? 'avatar'}
-              style={{ width: '40px', height: '40px', borderRadius: '4px', backgroundColor: 'var(--bg-main)' }}
-            />
-          </Link>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <Link to={`/profile/${profile?.id}`} style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                {profile?.display_name || profile?.username}
-              </Link>
-              <span className="text-secondary" style={{ fontSize: '13px' }}>@{profile?.username}</span>
-              <span className="text-secondary" style={{ fontSize: '13px' }}>•</span>
-              <span className="text-secondary" style={{ fontSize: '13px' }}>
-                {formatDistanceToNow(new Date(post.created_at))} ago
-              </span>
-            </div>
-            <Link to={`/post/${post.id}`} style={{ color: 'var(--text-primary)' }}>
-              <h2 style={{ fontSize: '18px', marginTop: '4px' }}>{post.title}</h2>
+    <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ padding: '16px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+        <Link to={`/profile/${profile?.username}`} style={{ flexShrink: 0 }}>
+          <img
+            src={profile?.avatar_url || `https://api.dicebear.com/7.x/identicon/svg?seed=${profile?.username ?? 'anon'}`}
+            alt={profile?.username ?? 'avatar'}
+            style={{ width: '40px', height: '40px', borderRadius: '4px', backgroundColor: 'var(--bg-main)' }}
+          />
+        </Link>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', fontSize: '13px' }}>
+            <Link to={`/profile/${profile?.username}`} style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
+              {profile?.display_name || profile?.username}
             </Link>
+            <span className="text-secondary">@{profile?.username}</span>
+            <span className="text-secondary">•</span>
+            <span className="text-secondary">{formatDistanceToNow(new Date(post.created_at), { locale: ru })} назад</span>
           </div>
+          <Link to={`/post/${post.id}`} style={{ color: 'var(--text-primary)' }}>
+            <h2 style={{
+              fontSize: '17px',
+              marginTop: '4px',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}>{post.title}</h2>
+          </Link>
         </div>
-        <button className="btn btn-sm" style={{ border: 'none', background: 'transparent', padding: '4px' }} title="More">
-          <MoreHorizontal size={16} />
-        </button>
       </div>
 
-      <div style={{ padding: '0 16px 16px 68px' }}>
+      <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
         {post.description && (
-          <p style={{ marginBottom: '12px', color: 'var(--text-primary)' }}>{post.description}</p>
+          <p style={{
+            marginBottom: '12px',
+            color: 'var(--text-primary)',
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}>{post.description}</p>
         )}
 
         {post.content_md && (
-          <div style={{ marginBottom: '16px', fontSize: '14px', borderLeft: '2px solid var(--border-color)', paddingLeft: '16px' }}>
+          <div style={{
+            marginBottom: '16px',
+            fontSize: '14px',
+            borderLeft: '2px solid var(--border-color)',
+            paddingLeft: '12px',
+            display: '-webkit-box',
+            WebkitLineClamp: 4,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}>
             <ReactMarkdown>{post.content_md}</ReactMarkdown>
           </div>
         )}
 
         {post.image_url && (
           <div style={{ marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-            <img src={post.image_url} alt="Post content" style={{ width: '100%', display: 'block' }} />
+            <img
+              src={post.image_url}
+              alt="Post content"
+              style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', display: 'block' }}
+            />
           </div>
         )}
 
         {post.video_url && (
           <div style={{ marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-            <video src={post.video_url} controls style={{ width: '100%', display: 'block', backgroundColor: '#000' }} />
+            <video
+              src={post.video_url}
+              controls
+              style={{ width: '100%', maxHeight: '220px', display: 'block', backgroundColor: '#000' }}
+            />
           </div>
         )}
 
@@ -164,7 +189,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '24px', marginTop: '16px' }}>
+        <div style={{ display: 'flex', gap: '16px', marginTop: 'auto', paddingTop: '16px' }}>
           <button
             onClick={() => toggleStar.mutate()}
             disabled={!userId || toggleStar.isPending}
@@ -173,14 +198,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               border: 'none', background: 'transparent', padding: '4px',
               color: interactions?.isStarred ? 'var(--accent-primary)' : 'var(--text-secondary)',
             }}
-            title={userId ? (interactions?.isStarred ? 'Unstar' : 'Star') : 'Sign in to star'}
+            title={userId ? (interactions?.isStarred ? 'Убрать звезду' : 'Поставить звезду') : 'Войдите, чтобы оценить'}
           >
             <Star size={18} fill={interactions?.isStarred ? 'currentColor' : 'none'} />
-            <span style={{ marginLeft: '6px' }}>{starCount} Stars</span>
+            <span style={{ marginLeft: '6px' }}>{starCount}</span>
           </button>
           <Link to={`/post/${post.id}`} className="btn btn-sm" style={{ border: 'none', background: 'transparent', padding: '4px', color: 'var(--text-secondary)' }}>
             <MessageSquare size={18} />
-            <span style={{ marginLeft: '6px' }}>{commentCount} Comments</span>
+            <span style={{ marginLeft: '6px' }}>{commentCount}</span>
           </Link>
           <button
             onClick={() => toggleSave.mutate()}
@@ -190,15 +215,15 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               border: 'none', background: 'transparent', padding: '4px',
               color: interactions?.isSaved ? 'var(--accent-primary)' : 'var(--text-secondary)',
             }}
-            title={userId ? (interactions?.isSaved ? 'Unsave' : 'Save') : 'Sign in to save'}
+            title={userId ? (interactions?.isSaved ? 'Убрать из сохранённых' : 'Сохранить') : 'Войдите, чтобы сохранить'}
           >
             <Bookmark size={18} fill={interactions?.isSaved ? 'currentColor' : 'none'} />
           </button>
           <button
-            onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/post/${post.id}`)}
+            onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/#/post/${post.id}`)}
             className="btn btn-sm"
-            style={{ border: 'none', background: 'transparent', padding: '4px', color: 'var(--text-secondary)' }}
-            title="Copy link"
+            style={{ border: 'none', background: 'transparent', padding: '4px', color: 'var(--text-secondary)', marginLeft: 'auto' }}
+            title="Копировать ссылку"
           >
             <Share2 size={18} />
           </button>

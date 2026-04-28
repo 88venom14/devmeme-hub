@@ -26,7 +26,7 @@ const CreatePostPage: React.FC = () => {
   const createPost = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('You must be logged in to post');
+      if (!user) throw new Error('Необходимо войти в аккаунт');
 
       let imageUrl: string | null = null;
       let videoUrl: string | null = null;
@@ -70,14 +70,14 @@ const CreatePostPage: React.FC = () => {
   const previewBlock = (file: File, kind: 'image' | 'video', clear: () => void) => (
     <div style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
       {kind === 'image' ? (
-        <img src={URL.createObjectURL(file)} alt="preview" style={{ width: '100%', display: 'block' }} />
+        <img src={URL.createObjectURL(file)} alt="превью" style={{ width: '100%', display: 'block' }} />
       ) : (
         <video src={URL.createObjectURL(file)} controls style={{ width: '100%', display: 'block', backgroundColor: '#000' }} />
       )}
       <button
         type="button"
         onClick={clear}
-        title="Remove"
+        title="Удалить"
         style={{
           position: 'absolute', top: 8, right: 8, padding: 6,
           background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer',
@@ -91,35 +91,35 @@ const CreatePostPage: React.FC = () => {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Create New Post</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Новый пост</h1>
         <button onClick={() => navigate(-1)} className="btn btn-sm">
           <X size={16} />
-          <span>Cancel</span>
+          <span>Отмена</span>
         </button>
       </div>
 
       <div className="card" style={{ padding: '24px' }}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Title</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Заголовок</label>
             <input
-              type="text" placeholder="Give your post a title..."
+              type="text" placeholder="Дайте посту заголовок..."
               style={{ width: '100%' }}
               value={title} onChange={(e) => setTitle(e.target.value)} required
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Content (Markdown supported)</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Контент (поддерживается Markdown)</label>
             <textarea
-              placeholder="Share your thoughts, code snippets, or project details..."
+              placeholder="Поделитесь мыслями, сниппетами или описанием проекта..."
               style={{ width: '100%', minHeight: '200px', resize: 'vertical' }}
               value={content} onChange={(e) => setContent(e.target.value)}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>GitHub Repository URL</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Ссылка на GitHub репозиторий</label>
             <div style={{ position: 'relative' }}>
               <LinkIcon size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input
@@ -131,7 +131,7 @@ const CreatePostPage: React.FC = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Tags</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Теги</label>
             <div style={{ position: 'relative' }}>
               <Hash size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input
@@ -142,7 +142,7 @@ const CreatePostPage: React.FC = () => {
               />
             </div>
             <p className="text-secondary" style={{ fontSize: '12px', marginTop: '4px' }}>
-              Comma- or space-separated. Lowercase letters, digits, dash and underscore (max 30 chars each).
+              Через запятую или пробел. Строчные буквы, цифры, тире и подчёркивание (макс. 30 символов).
             </p>
             {tags.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
@@ -158,7 +158,7 @@ const CreatePostPage: React.FC = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Media</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Медиа</label>
             <div style={{ display: 'flex', gap: '12px' }}>
               <input
                 ref={imageInput} type="file" accept="image/*" hidden
@@ -174,7 +174,7 @@ const CreatePostPage: React.FC = () => {
                 style={{ flex: 1, padding: '12px', flexDirection: 'column', gap: '8px' }}
               >
                 <ImageIcon size={24} />
-                <span style={{ fontSize: '12px' }}>{imageFile ? 'Change Image' : 'Upload Image'}</span>
+                <span style={{ fontSize: '12px' }}>{imageFile ? 'Изменить фото' : 'Загрузить фото'}</span>
               </button>
               <button
                 type="button" className="btn"
@@ -182,7 +182,7 @@ const CreatePostPage: React.FC = () => {
                 style={{ flex: 1, padding: '12px', flexDirection: 'column', gap: '8px' }}
               >
                 <Video size={24} />
-                <span style={{ fontSize: '12px' }}>{videoFile ? 'Change Video' : 'Upload Video'}</span>
+                <span style={{ fontSize: '12px' }}>{videoFile ? 'Изменить видео' : 'Загрузить видео'}</span>
               </button>
             </div>
             {(imageFile || videoFile) && (
@@ -192,7 +192,7 @@ const CreatePostPage: React.FC = () => {
               </div>
             )}
             <p className="text-secondary" style={{ fontSize: '12px', marginTop: '6px' }}>
-              Max 50 MB. PNG / JPG / GIF / WEBP / MP4 / WEBM / MOV.
+              Макс. 50 МБ. PNG / JPG / GIF / WEBP / MP4 / WEBM / MOV.
             </p>
           </div>
 
@@ -205,7 +205,7 @@ const CreatePostPage: React.FC = () => {
           <div style={{ marginTop: '12px', paddingTop: '24px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end' }}>
             <button type="submit" className="btn btn-primary" disabled={!title.trim() || createPost.isPending} style={{ padding: '10px 24px' }}>
               <Send size={18} style={{ marginRight: '8px' }} />
-              <span>{createPost.isPending ? 'Publishing...' : 'Publish Post'}</span>
+              <span>{createPost.isPending ? 'Публикация...' : 'Опубликовать'}</span>
             </button>
           </div>
         </form>

@@ -25,7 +25,7 @@ const FeedPage: React.FC = () => {
   if (isLoading) {
     return (
       <div style={{ padding: '20px', textAlign: 'center' }}>
-        <div className="mono">FETCHING_CONTENT...</div>
+        <div className="mono">ЗАГРУЗКА...</div>
       </div>
     );
   }
@@ -33,7 +33,7 @@ const FeedPage: React.FC = () => {
   if (error) {
     return (
       <div style={{ padding: '20px', textAlign: 'center', color: 'var(--error)' }}>
-        <div className="mono">ERROR_FETCHING_FEED: {(error as Error).message}</div>
+        <div className="mono">ОШИБКА: {(error as Error).message}</div>
       </div>
     );
   }
@@ -42,15 +42,15 @@ const FeedPage: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {session && <PostComposer />}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {posts && posts.length > 0 ? (
-          posts.map((post) => <PostCard key={post.id} post={post} />)
-        ) : (
-          <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-            <div className="text-secondary">No posts yet. Be the first to share!</div>
-          </div>
-        )}
-      </div>
+      {posts && posts.length > 0 ? (
+        <div className="post-grid">
+          {posts.map((post) => <PostCard key={post.id} post={post} />)}
+        </div>
+      ) : (
+        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+          <div className="text-secondary">Постов пока нет. Будьте первым!</div>
+        </div>
+      )}
     </div>
   );
 };

@@ -29,16 +29,18 @@ const TrendingPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Trending (last 7 days)</h1>
+      <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Популярное (7 дней)</h1>
 
-      {isLoading && <div className="mono text-secondary">LOADING_TRENDING...</div>}
+      {isLoading && <div className="mono text-secondary">ЗАГРУЗКА...</div>}
       {error && <div className="mono" style={{ color: 'var(--error)' }}>{(error as Error).message}</div>}
 
       {ranked.length > 0 ? (
-        ranked.map((post) => <PostCard key={post.id} post={post} />)
+        <div className="post-grid">
+          {ranked.map((post) => <PostCard key={post.id} post={post} />)}
+        </div>
       ) : !isLoading ? (
         <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-          <div className="text-secondary">Nothing trending this week.</div>
+          <div className="text-secondary">На этой неделе пока пусто.</div>
         </div>
       ) : null}
     </div>

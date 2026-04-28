@@ -38,7 +38,6 @@ const SettingsPage: React.FC = () => {
 
   useEffect(() => {
     if (!profile) {
-      // No profile row yet — pre-fill sensible defaults from auth user
       setUsername(userEmail.split('@')[0] ?? '');
       return;
     }
@@ -51,10 +50,10 @@ const SettingsPage: React.FC = () => {
 
   const saveProfile = useMutation({
     mutationFn: async () => {
-      if (!userId) throw new Error('Not signed in');
+      if (!userId) throw new Error('Вы не авторизованы');
       const cleanUsername = username.trim().toLowerCase();
       if (!/^[a-z0-9][a-z0-9_-]{1,30}$/.test(cleanUsername)) {
-        throw new Error('Username: 2-31 chars, lowercase letters/digits/-/_, must start with letter or digit.');
+        throw new Error('Имя пользователя: 2–31 символ, строчные буквы/цифры/-/_, начинается с буквы или цифры.');
       }
 
       const payload = {
@@ -73,7 +72,7 @@ const SettingsPage: React.FC = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      setStatusMsg({ kind: 'ok', text: 'Saved.' });
+      setStatusMsg({ kind: 'ok', text: 'Сохранено.' });
       queryClient.invalidateQueries({ queryKey: ['profile', userId] });
     },
     onError: (err: Error) => setStatusMsg({ kind: 'err', text: err.message }),
@@ -81,7 +80,7 @@ const SettingsPage: React.FC = () => {
 
   const uploadAvatar = useMutation({
     mutationFn: async (file: File) => {
-      if (!userId) throw new Error('Not signed in');
+      if (!userId) throw new Error('Вы не авторизованы');
       const url = await uploadPostMedia(file, userId);
       setAvatarUrl(url);
       return url;
@@ -96,14 +95,14 @@ const SettingsPage: React.FC = () => {
 
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>Settings</h1>
+      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>Настройки</h1>
 
       <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <section>
-          <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Profile Information</h3>
+          <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Информация профиля</h3>
 
           {isLoading ? (
-            <div className="mono text-secondary">LOADING_PROFILE...</div>
+            <div className="mono text-secondary">ЗАГРУЗКА_ПРОФИЛЯ...</div>
           ) : (
             <form
               onSubmit={(e) => {
@@ -113,11 +112,10 @@ const SettingsPage: React.FC = () => {
               }}
               style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
             >
-              {/* Avatar */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <img
                   src={avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${username || 'anon'}`}
-                  alt="avatar"
+                  alt="аватар"
                   style={{ width: '72px', height: '72px', borderRadius: '6px', backgroundColor: 'var(--bg-main)' }}
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -136,18 +134,18 @@ const SettingsPage: React.FC = () => {
                     style={{ gap: 6 }}
                   >
                     <ImageIcon size={14} />
-                    {uploadAvatar.isPending ? 'Uploading...' : 'Upload avatar'}
+                    {uploadAvatar.isPending ? 'Загрузка...' : 'Загрузить аватар'}
                   </button>
                   {avatarUrl && (
                     <button type="button" className="btn btn-sm" onClick={() => setAvatarUrl(null)}>
-                      Remove
+                      Удалить
                     </button>
                   )}
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Username</label>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Имя пользователя</label>
                 <input
                   type="text" value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -157,24 +155,24 @@ const SettingsPage: React.FC = () => {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Display Name</label>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Отображаемое имя</label>
                 <input
-                  type="text" placeholder="Your name"
+                  type="text" placeholder="Ваше имя"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   style={{ width: '100%' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Bio</label>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>О себе</label>
                 <textarea
                   style={{ width: '100%', minHeight: '80px' }}
-                  placeholder="Tell us about yourself..."
+                  placeholder="Расскажите о себе..."
                   value={bio} onChange={(e) => setBio(e.target.value)}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Website</label>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Сайт</label>
                 <input
                   type="url" style={{ width: '100%' }}
                   placeholder="https://yourwebsite.com"
@@ -189,16 +187,16 @@ const SettingsPage: React.FC = () => {
               )}
 
               <button type="submit" className="btn btn-primary" disabled={saveProfile.isPending} style={{ alignSelf: 'flex-start' }}>
-                {saveProfile.isPending ? 'Saving...' : 'Save Profile'}
+                {saveProfile.isPending ? 'Сохранение...' : 'Сохранить профиль'}
               </button>
             </form>
           )}
         </section>
 
         <section style={{ borderTop: '1px solid var(--border-color)', paddingTop: '24px' }}>
-          <h3 style={{ fontSize: '18px', marginBottom: '16px', color: 'var(--error)' }}>Danger Zone</h3>
+          <h3 style={{ fontSize: '18px', marginBottom: '16px', color: 'var(--error)' }}>Опасная зона</h3>
           <button onClick={handleSignOut} className="btn" style={{ borderColor: 'var(--error)', color: 'var(--error)' }}>
-            Sign Out
+            Выйти из аккаунта
           </button>
         </section>
       </div>

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Send } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { ru } from 'date-fns/locale';
 import { supabase, POST_SELECT } from '../lib/supabase';
 import type { Comment, PostWithMeta } from '../lib/supabase';
 import PostCard from '../components/feed/PostCard';
@@ -46,8 +47,8 @@ const PostDetailPage: React.FC = () => {
 
   const addComment = useMutation({
     mutationFn: async () => {
-      if (!session) throw new Error('Sign in to comment');
-      if (!id) throw new Error('Missing post id');
+      if (!session) throw new Error('Войдите, чтобы оставить комментарий');
+      if (!id) throw new Error('Не найден ID поста');
       const { error } = await supabase
         .from('comments')
         .insert({ post_id: id, user_id: session.user.id, text: text.trim() });
@@ -61,13 +62,13 @@ const PostDetailPage: React.FC = () => {
   });
 
   if (postLoading) {
-    return <div style={{ padding: '20px' }} className="mono">LOADING_POST...</div>;
+    return <div style={{ padding: '20px' }} className="mono">ЗАГРУЗКА_ПОСТА...</div>;
   }
 
   if (postError || !post) {
     return (
       <div style={{ padding: '20px', color: 'var(--error)' }} className="mono">
-        POST_NOT_FOUND
+        ПОСТ_НЕ_НАЙДЕН
       </div>
     );
   }
@@ -77,7 +78,7 @@ const PostDetailPage: React.FC = () => {
       <PostCard post={post} />
 
       <div className="card" style={{ padding: '20px' }}>
-        <h3 style={{ fontSize: '16px', marginBottom: '16px' }}>Comments</h3>
+        <h3 style={{ fontSize: '16px', marginBottom: '16px' }}>Комментарии</h3>
 
         {session ? (
           <form
@@ -90,7 +91,7 @@ const PostDetailPage: React.FC = () => {
           >
             <input
               type="text"
-              placeholder="Add a comment..."
+              placeholder="Напишите комментарий..."
               value={text}
               onChange={(e) => setText(e.target.value)}
               style={{ flex: 1 }}
@@ -101,7 +102,7 @@ const PostDetailPage: React.FC = () => {
           </form>
         ) : (
           <div className="text-secondary" style={{ marginBottom: '20px', fontSize: '14px' }}>
-            Sign in to leave a comment.
+            Войдите, чтобы оставить комментарий.
           </div>
         )}
 
@@ -112,7 +113,7 @@ const PostDetailPage: React.FC = () => {
         )}
 
         {commentsLoading ? (
-          <div className="mono text-secondary">LOADING_COMMENTS...</div>
+          <div className="mono text-secondary">ЗАГРУЗКА_КОММЕНТАРИЕВ...</div>
         ) : comments && comments.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {comments.map((c) => (
@@ -126,7 +127,7 @@ const PostDetailPage: React.FC = () => {
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px' }}>
                     <span style={{ fontWeight: 'bold' }}>{c.profiles?.display_name || c.profiles?.username}</span>
                     <span className="text-secondary">•</span>
-                    <span className="text-secondary">{formatDistanceToNow(new Date(c.created_at))} ago</span>
+                    <span className="text-secondary">{formatDistanceToNow(new Date(c.created_at), { locale: ru })} назад</span>
                   </div>
                   <p style={{ marginTop: '4px' }}>{c.text}</p>
                 </div>
@@ -134,7 +135,7 @@ const PostDetailPage: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="text-secondary" style={{ fontSize: '14px' }}>No comments yet.</div>
+          <div className="text-secondary" style={{ fontSize: '14px' }}>Комментариев пока нет.</div>
         )}
       </div>
     </div>
