@@ -1,12 +1,12 @@
 import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
-import { Bookmark, Users, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import SearchBar from './SearchBar';
 import { useTopTags } from '../../hooks/useTopTags';
 import { useQuery } from '@tanstack/react-query';
-import { HomeIcon, NewPostIcon, ProfileIcon, SettingsIcon } from '../icons';
+import { HomeIcon, NewPostIcon, ProfileIcon, SettingsIcon, SavedIcon, SubscriptionsIcon } from '../icons';
 
 interface AppShellProps {
   session: Session | null;
@@ -114,10 +114,10 @@ const UserCard: React.FC<{ session: NonNullable<AppShellProps['session']>; myPro
           <ProfileIcon size={16} />Профиль
         </Link>
         <Link to="/following" className="sub-nav-link" style={{ padding: '6px 8px', borderRadius: '6px', fontSize: '13px' }}>
-          <Users size={16} />Подписки
+          <SubscriptionsIcon size={16} />Подписки
         </Link>
         <Link to="/saved" className="sub-nav-link" style={{ padding: '6px 8px', borderRadius: '6px', fontSize: '13px' }}>
-          <Bookmark size={16} />Сохранённые
+          <SavedIcon size={16} />Сохранённые
         </Link>
         <Link to="/settings" className="sub-nav-link" style={{ padding: '6px 8px', borderRadius: '6px', fontSize: '13px' }}>
           <SettingsIcon size={16} />Настройки

@@ -9,7 +9,7 @@ import type { GithubRepoData, PostWithMeta } from '../../lib/supabase';
 import { useSession } from '../../hooks/useSession';
 import { useInvalidatePosts } from '../../hooks/useInvalidatePosts';
 import MarkdownContent from '../MarkdownContent';
-import { LikeIcon, CommentIcon, ShareIcon, StarIcon } from '../icons';
+import { LikeIcon, CommentIcon, ShareIcon, SavedIcon, StarsIcon } from '../icons';
 
 interface PostCardProps {
   post: PostWithMeta;
@@ -189,11 +189,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, mode = 'feed' }) => {
             style={{ border: 'none', background: 'none', padding: '4px' }}
             title={userId ? (interactions?.isStarred ? 'Убрать лайк' : 'Лайк') : 'Войдите, чтобы оценить'}
           >
-            <LikeIcon size={18} color={interactions?.isStarred ? '#FF8C00' : 'var(--text-secondary)'} filled={interactions?.isStarred} />
+            <LikeIcon size={18} color="#FF8C00" filled={interactions?.isStarred} />
             <span style={{ marginLeft: '6px' }}>{starCount}</span>
           </button>
           <Link to={`/post/${post.id}`} className="btn btn-sm" style={{ border: 'none', background: 'none', padding: '4px' }}>
-            <CommentIcon size={18} color="var(--text-secondary)" />
+            <CommentIcon size={18} color="#FF8C00" />
             <span style={{ marginLeft: '6px' }}>{commentCount}</span>
           </Link>
           <button
@@ -203,7 +203,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, mode = 'feed' }) => {
             style={{ border: 'none', background: 'none', padding: '4px' }}
             title={userId ? (interactions?.isSaved ? 'Убрать из сохранённых' : 'Сохранить') : 'Войдите, чтобы сохранить'}
           >
-            <StarIcon size={18} color={interactions?.isSaved ? '#FF8C00' : 'var(--text-secondary)'} filled={interactions?.isSaved} />
+            <SavedIcon size={18} color="#FF8C00" filled={interactions?.isSaved} />
           </button>
           <button
             onClick={handleShare}
@@ -211,7 +211,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, mode = 'feed' }) => {
             style={{ border: 'none', background: 'transparent', padding: '4px', marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px' }}
             title="Копировать ссылку"
           >
-            <ShareIcon size={18} color={copied ? '#FF8C00' : 'var(--text-secondary)'} />
+            <ShareIcon size={18} color="#FF8C00" />
             {copied && <span style={{ fontSize: '11px', color: 'var(--accent-primary)' }}>Скопировано!</span>}
           </button>
         </div>
@@ -245,7 +245,7 @@ const GithubRepoPreview = ({ url, repoData }: { url: string, repoData: GithubRep
           )}
           {typeof repoData.stargazers_count === 'number' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <StarIcon size={12} color="var(--text-secondary)" />
+              <StarsIcon size={12} />
               <span>{repoData.stargazers_count}</span>
             </div>
           )}

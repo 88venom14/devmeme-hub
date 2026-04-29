@@ -65,3 +65,24 @@ export const ShareIcon: React.FC<IconProps> = ({ size = 24, color = ACCENT, styl
     <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
   </svg>
 );
+
+export const SavedIcon: React.FC<IconProps & { filled?: boolean }> = ({ size = 24, color = ACCENT, filled, style, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : 'none'} stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={style} className={className} aria-hidden="true">
+    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+  </svg>
+);
+
+export const StarsIcon: React.FC<IconProps & { filled?: boolean }> = ({ size = 24, color = ACCENT, filled, style, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : 'none'} stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={style} className={className} aria-hidden="true">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
+export const SubscriptionsIcon: React.FC<IconProps> = ({ size = 24, color = ACCENT, style, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={style} className={className} aria-hidden="true">
+    <path d="M12 2H2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V2z" />
+    <path d="M18 9h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 7 12 7" />
+    <polyline points="7 10 10 10" />
+  </svg>
+);
