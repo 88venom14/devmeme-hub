@@ -9,8 +9,10 @@ interface Props {
 }
 
 const MarkdownContent: React.FC<Props> = ({ children, clamp }) => {
+  // webkit-line-clamp doesn't work with block elements like <pre>, so use maxHeight instead
+  const lineHeightPx = 22; // 14px font * 1.6 line-height ≈ 22px
   const wrapperStyle: React.CSSProperties = clamp
-    ? { display: '-webkit-box', WebkitLineClamp: clamp, WebkitBoxOrient: 'vertical', overflow: 'hidden' }
+    ? { maxHeight: `${clamp * lineHeightPx}px`, overflow: 'hidden' }
     : {};
 
   return (
