@@ -6,35 +6,7 @@ import { supabase } from '../../lib/supabase';
 import SearchBar from './SearchBar';
 import { useTopTags } from '../../hooks/useTopTags';
 import { useQuery } from '@tanstack/react-query';
-
-const HomeIcon = ({ size = 18, color: _c }: { size?: number; color?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-    <polyline points="9 22 9 12 15 12 15 22" />
-  </svg>
-);
-
-const NewPostIcon = ({ size = 18, color: _c }: { size?: number; color?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-    <line x1="12" y1="8" x2="12" y2="16" />
-    <line x1="8" y1="12" x2="16" y2="12" />
-  </svg>
-);
-
-const ProfileIcon = ({ size = 18, color: _c }: { size?: number; color?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
-  </svg>
-);
-
-const SettingsIcon = ({ size = 16, color: _c }: { size?: number; color?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-  </svg>
-);
+import { HomeIcon, NewPostIcon, ProfileIcon, SettingsIcon } from '../icons';
 
 interface AppShellProps {
   session: Session | null;
@@ -81,7 +53,7 @@ const AppShell: React.FC<AppShellProps> = ({ session }) => {
             {session ? (
               <>
                 <Link to="/post/new" className="btn btn-primary btn-sm">
-                  <NewPostIcon size={16} color="currentColor" />
+                  <NewPostIcon size={16} />
                   <span>Создать</span>
                 </Link>
                 <button onClick={handleLogout} className="btn btn-sm" title="Выйти">
@@ -97,10 +69,10 @@ const AppShell: React.FC<AppShellProps> = ({ session }) => {
       </header>
 
       <nav className="sub-nav">
-        <Link to="/post/new" className="sub-nav-link"><NewPostIcon size={18} color="currentColor" />Новый пост</Link>
-        <Link to="/feed" className="sub-nav-link"><HomeIcon size={18} color="currentColor" />Лента</Link>
+        <Link to="/post/new" className="sub-nav-link"><NewPostIcon size={18} />Новый пост</Link>
+        <Link to="/feed" className="sub-nav-link"><HomeIcon size={18} />Лента</Link>
         {session && myProfile && (
-          <Link to={`/profile/${myProfile.username}`} className="sub-nav-link"><ProfileIcon size={18} color="currentColor" />Профиль</Link>
+          <Link to={`/profile/${myProfile.username}`} className="sub-nav-link"><ProfileIcon size={18} />Профиль</Link>
         )}
       </nav>
 
@@ -139,7 +111,7 @@ const UserCard: React.FC<{ session: NonNullable<AppShellProps['session']>; myPro
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
         <Link to={`/profile/${myProfile.username}`} className="sub-nav-link" style={{ padding: '6px 8px', borderRadius: '6px', fontSize: '13px' }}>
-          <ProfileIcon size={16} color="currentColor" />Профиль
+          <ProfileIcon size={16} />Профиль
         </Link>
         <Link to="/following" className="sub-nav-link" style={{ padding: '6px 8px', borderRadius: '6px', fontSize: '13px' }}>
           <Users size={16} />Подписки
@@ -148,7 +120,7 @@ const UserCard: React.FC<{ session: NonNullable<AppShellProps['session']>; myPro
           <Bookmark size={16} />Сохранённые
         </Link>
         <Link to="/settings" className="sub-nav-link" style={{ padding: '6px 8px', borderRadius: '6px', fontSize: '13px' }}>
-          <SettingsIcon size={16} color="currentColor" />Настройки
+          <SettingsIcon size={16} />Настройки
         </Link>
       </div>
     </div>
