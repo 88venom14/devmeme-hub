@@ -39,7 +39,12 @@ const App: React.FC = () => {
   React.useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('code');
     if (!code) return;
-    supabase.auth.exchangeCodeForSession(code).finally(() => setOauthPending(false));
+    supabase.auth.exchangeCodeForSession(code).finally(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('code');
+    window.history.replaceState({}, '', url.toString());
+    setOauthPending(false);
+  });
   }, []);
 
   if (loading || oauthPending) {

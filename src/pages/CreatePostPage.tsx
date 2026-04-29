@@ -9,7 +9,6 @@ import { parseTags, attachTagsToPost } from '../lib/tags';
 
 const LIMITS = {
   title: 150,
-  content: 10_000,
   githubUrl: 500,
   tagsInput: 200,
   maxTags: 10,
@@ -48,7 +47,6 @@ const CreatePostPage: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Необходимо войти в аккаунт');
       if (title.trim().length > LIMITS.title) throw new Error(`Заголовок не может превышать ${LIMITS.title} символов`);
-      if (content.length > LIMITS.content) throw new Error(`Контент не может превышать ${LIMITS.content} символов`);
       if (tags.length > LIMITS.maxTags) throw new Error(`Максимум ${LIMITS.maxTags} тегов`);
 
       let imageUrl: string | null = null;
@@ -86,7 +84,7 @@ const CreatePostPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || createPost.isPending) return;
-    if (title.length > LIMITS.title || content.length > LIMITS.content || tags.length > LIMITS.maxTags) return;
+    if (title.length > LIMITS.title || tags.length > LIMITS.maxTags) return;
     setErrorMsg(null);
     createPost.mutate();
   };
@@ -114,13 +112,7 @@ const CreatePostPage: React.FC = () => {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Новый пост</h1>
-        <button onClick={() => navigate(-1)} className="btn btn-sm">
-          <X size={16} />
-          <span>Отмена</span>
-        </button>
-      </div>
+      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>Новый пост</h1>
 
       <div className="card" style={{ padding: '24px' }}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -133,21 +125,18 @@ const CreatePostPage: React.FC = () => {
               type="text" placeholder="Дайте посту заголовок..."
               style={{ width: '100%', borderColor: title.length > LIMITS.title ? 'var(--error)' : undefined }}
               value={title}
-              onChange={(e) => setTitle(e.target.value.slice(0, LIMITS.title + 20))}
+              onChange={(e) => setTitle(e.target.value.slice(0, LIMITS.title))}
               required
             />
           </div>
 
           <div>
-            <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '8px' }}>
-              <label style={{ fontSize: '14px', fontWeight: 'bold' }}>Контент (поддерживается Markdown)</label>
-              <CharCount value={content} max={LIMITS.content} />
-            </div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>Контент (поддерживается Markdown)</label>
             <textarea
               placeholder="Поделитесь мыслями, сниппетами или описанием проекта..."
-              style={{ width: '100%', minHeight: '200px', resize: 'vertical', borderColor: content.length > LIMITS.content ? 'var(--error)' : undefined }}
+              style={{ width: '100%', minHeight: '200px', resize: 'vertical' }}
               value={content}
-              onChange={(e) => setContent(e.target.value.slice(0, LIMITS.content + 100))}
+              onChange={(e) => setContent(e.target.value)}
             />
           </div>
 
@@ -232,11 +221,20 @@ const CreatePostPage: React.FC = () => {
             </div>
           )}
 
-          <div style={{ marginTop: '12px', paddingTop: '24px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ marginTop: '12px', paddingTop: '24px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="btn"
+              style={{ padding: '10px 24px' }}
+            >
+              <X size={18} style={{ marginRight: '8px' }} />
+              <span>Отмена</span>
+            </button>
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={!title.trim() || createPost.isPending || title.length > LIMITS.title || content.length > LIMITS.content || tags.length > LIMITS.maxTags}
+              disabled={!title.trim() || createPost.isPending || title.length > LIMITS.title || tags.length > LIMITS.maxTags}
               style={{ padding: '10px 24px' }}
             >
               <Send size={18} style={{ marginRight: '8px' }} />

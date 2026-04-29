@@ -2,6 +2,24 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Link as LinkIcon } from 'lucide-react';
+
+const GithubIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.01c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.35.96.1-.74.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.07 11.07 0 0 1 5.79 0c2.21-1.49 3.17-1.18 3.17-1.18.63 1.59.24 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.42-2.7 5.4-5.27 5.68.41.36.78 1.05.78 2.12v3.14c0 .31.21.68.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/>
+  </svg>
+);
+
+const YoutubeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="#FF0000" aria-hidden="true">
+    <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/>
+  </svg>
+);
+
+const TwitchProfileIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="#9146FF" aria-hidden="true">
+    <path d="M2.149 0L.537 4.119v16.836h5.731V24h3.224l3.045-3.045h4.657L23.463 14.7V0H2.149zm19.164 13.612l-3.582 3.582h-5.731l-3.045 3.045v-3.045H4.119V1.612h17.194v12zM18.358 5.731h-1.971v5.731h1.971V5.731zm-5.731 0h-1.971v5.731h1.971V5.731z"/>
+  </svg>
+);
 import { supabase, POST_SELECT } from '../lib/supabase';
 import type { Profile, PostWithMeta } from '../lib/supabase';
 import PostCard from '../components/feed/PostCard';
@@ -153,6 +171,24 @@ const ProfilePage: React.FC = () => {
                     {profile.website_url.replace(/^https?:\/\//, '')}
                   </a>
                 </div>
+              )}
+              {profile.github_url && (
+                <a href={profile.github_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <GithubIcon />
+                  <span>{profile.github_url.replace(/^https?:\/\/github\.com\//, '')}</span>
+                </a>
+              )}
+              {profile.youtube_url && (
+                <a href={profile.youtube_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <YoutubeIcon />
+                  <span>{profile.youtube_url.replace(/^https?:\/\/(www\.)?youtube\.com\//, '')}</span>
+                </a>
+              )}
+              {profile.twitch_url && (
+                <a href={profile.twitch_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <TwitchProfileIcon />
+                  <span>{profile.twitch_url.replace(/^https?:\/\/(www\.)?twitch\.tv\//, '')}</span>
+                </a>
               )}
             </div>
           </div>

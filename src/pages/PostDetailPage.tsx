@@ -75,7 +75,7 @@ const PostDetailPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <PostCard post={post} />
+      <PostCard post={post} mode="detail" />
 
       <div className="card" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '16px', marginBottom: '16px' }}>Комментарии</h3>
