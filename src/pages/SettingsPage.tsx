@@ -44,7 +44,7 @@ const SettingsPage: React.FC = () => {
   const [statusMsg, setStatusMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   const { data: profile, isLoading } = useQuery({
-    queryKey: ['profile', userId],
+    queryKey: ['profile-settings', userId],
     enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -100,7 +100,9 @@ const SettingsPage: React.FC = () => {
     },
     onSuccess: () => {
       setStatusMsg({ kind: 'ok', text: 'Сохранено.' });
-      queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+      queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile-mini', userId] });
+      queryClient.invalidateQueries({ queryKey: ['profile', username.trim().toLowerCase()] });
     },
     onError: (err: Error) => setStatusMsg({ kind: 'err', text: err.message }),
   });
@@ -124,197 +126,183 @@ const SettingsPage: React.FC = () => {
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>Настройки</h1>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Profile card */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '18px', marginBottom: '20px' }}>Информация профиля</h3>
+      {isLoading ? (
+        <div className="mono text-secondary">ЗАГРУЗКА_ПРОФИЛЯ...</div>
+      ) : (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setStatusMsg(null);
+            saveProfile.mutate();
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+        >
+          {/* Profile info card */}
+          <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h3 style={{ fontSize: '18px' }}>Информация профиля</h3>
 
-          {isLoading ? (
-            <div className="mono text-secondary">ЗАГРУЗКА_ПРОФИЛЯ...</div>
-          ) : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setStatusMsg(null);
-                saveProfile.mutate();
-              }}
-              style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-            >
-              {/* Avatar row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                <img
-                  src={avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${username || 'anon'}`}
-                  alt="аватар"
-                  style={{ width: '80px', height: '80px', borderRadius: '8px', backgroundColor: 'var(--bg-main)', flexShrink: 0 }}
+            {/* Avatar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <img
+                src={avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${username || 'anon'}`}
+                alt="аватар"
+                style={{ width: '80px', height: '80px', borderRadius: '8px', backgroundColor: 'var(--bg-main)', flexShrink: 0 }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <input
+                  ref={avatarInput} type="file" accept="image/*" hidden
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadAvatar.mutate(f);
+                  }}
                 />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <input
-                    ref={avatarInput} type="file" accept="image/*" hidden
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) uploadAvatar.mutate(f);
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    onClick={() => avatarInput.current?.click()}
-                    disabled={uploadAvatar.isPending}
-                    style={{ gap: 6 }}
-                  >
-                    <ImageIcon size={14} />
-                    {uploadAvatar.isPending ? 'Загрузка...' : 'Загрузить аватар'}
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => avatarInput.current?.click()}
+                  disabled={uploadAvatar.isPending}
+                  style={{ gap: 6 }}
+                >
+                  <ImageIcon size={14} />
+                  {uploadAvatar.isPending ? 'Загрузка...' : 'Загрузить аватар'}
+                </button>
+                {avatarUrl && (
+                  <button type="button" className="btn btn-sm" onClick={() => setAvatarUrl(null)}>
+                    Удалить
                   </button>
-                  {avatarUrl && (
-                    <button type="button" className="btn btn-sm" onClick={() => setAvatarUrl(null)}>
-                      Удалить
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
+            </div>
 
-              {/* Username + Display Name row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Имя пользователя</label>
-                  <input
-                    type="text" value={username}
-                    onChange={(e) => setUsername(e.target.value.slice(0, 31))}
-                    placeholder="dev_handle"
-                    style={{ width: '100%' }}
-                    autoComplete="username"
-                    maxLength={31}
-                  />
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '8px' }}>
-                    <label style={{ fontSize: '14px' }}>Отображаемое имя</label>
-                    {displayName.length >= 48 && (
-                      <span className="mono" style={{ fontSize: '11px', color: displayName.length > 60 ? 'var(--error)' : 'var(--text-secondary)', marginLeft: '8px' }}>
-                        {displayName.length}/60
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    type="text" placeholder="Ваше имя"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value.slice(0, 60))}
-                    style={{ width: '100%' }}
-                    maxLength={60}
-                  />
-                </div>
+            {/* Username + Display Name */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Имя пользователя</label>
+                <input
+                  type="text" value={username}
+                  onChange={(e) => setUsername(e.target.value.slice(0, 31))}
+                  placeholder="dev_handle"
+                  style={{ width: '100%' }}
+                  autoComplete="username"
+                  maxLength={31}
+                />
               </div>
-
-              {/* Bio */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '14px' }}>О себе</label>
-                  {bio.length >= 240 && (
-                    <span className="mono" style={{ fontSize: '11px', color: bio.length > 300 ? 'var(--error)' : 'var(--text-secondary)', marginLeft: '8px' }}>
-                      {bio.length}/300
+                  <label style={{ fontSize: '14px' }}>Отображаемое имя</label>
+                  {displayName.length >= 48 && (
+                    <span className="mono" style={{ fontSize: '11px', color: displayName.length > 60 ? 'var(--error)' : 'var(--text-secondary)', marginLeft: '8px' }}>
+                      {displayName.length}/60
                     </span>
                   )}
                 </div>
-                <textarea
-                  style={{ width: '100%', minHeight: '80px' }}
-                  placeholder="Расскажите о себе..."
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value.slice(0, 300))}
-                  maxLength={300}
-                />
-              </div>
-
-              {/* Website */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Сайт</label>
                 <input
-                  type="url" style={{ width: '100%' }}
-                  placeholder="https://yourwebsite.com"
-                  value={website}
-                  onChange={(e) => setWebsite(e.target.value.slice(0, 200))}
-                  maxLength={200}
+                  type="text" placeholder="Ваше имя"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value.slice(0, 60))}
+                  style={{ width: '100%' }}
+                  maxLength={60}
                 />
               </div>
+            </div>
 
-              {statusMsg && (
-                <div className="mono" style={{ fontSize: '13px', color: statusMsg.kind === 'err' ? 'var(--error)' : 'var(--success)' }}>
-                  {statusMsg.text}
-                </div>
-              )}
+            {/* Bio */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '8px' }}>
+                <label style={{ fontSize: '14px' }}>О себе</label>
+                {bio.length >= 240 && (
+                  <span className="mono" style={{ fontSize: '11px', color: bio.length > 300 ? 'var(--error)' : 'var(--text-secondary)', marginLeft: '8px' }}>
+                    {bio.length}/300
+                  </span>
+                )}
+              </div>
+              <textarea
+                style={{ width: '100%', minHeight: '80px' }}
+                placeholder="Расскажите о себе..."
+                value={bio}
+                onChange={(e) => setBio(e.target.value.slice(0, 300))}
+                maxLength={300}
+              />
+            </div>
+          </div>
 
-              <button type="submit" className="btn btn-primary" disabled={saveProfile.isPending} style={{ alignSelf: 'flex-start', padding: '10px 24px' }}>
-                {saveProfile.isPending ? 'Сохранение...' : 'Сохранить профиль'}
-              </button>
-            </form>
-          )}
-        </div>
+          {/* Links card */}
+          <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h3 style={{ fontSize: '18px' }}>Ссылки и соцсети</h3>
 
-        {/* Social links card */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '18px', marginBottom: '20px' }}>Социальные ссылки</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Сайт</label>
+              <input
+                type="url" style={{ width: '100%' }}
+                placeholder="https://yourwebsite.com"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value.slice(0, 200))}
+                maxLength={200}
+              />
+            </div>
+
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                 <GithubIcon />
                 <label style={{ fontSize: '14px' }}>GitHub</label>
               </div>
               <input
-                type="url"
-                style={{ width: '100%' }}
+                type="url" style={{ width: '100%' }}
                 placeholder="https://github.com/username"
                 value={githubUrl}
                 onChange={(e) => setGithubUrl(e.target.value.slice(0, 200))}
                 maxLength={200}
               />
             </div>
+
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                 <YoutubeIcon />
                 <label style={{ fontSize: '14px' }}>YouTube</label>
               </div>
               <input
-                type="url"
-                style={{ width: '100%' }}
+                type="url" style={{ width: '100%' }}
                 placeholder="https://youtube.com/@channel"
                 value={youtubeUrl}
                 onChange={(e) => setYoutubeUrl(e.target.value.slice(0, 200))}
                 maxLength={200}
               />
             </div>
+
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                 <TwitchIcon />
                 <label style={{ fontSize: '14px' }}>Twitch</label>
               </div>
               <input
-                type="url"
-                style={{ width: '100%' }}
+                type="url" style={{ width: '100%' }}
                 placeholder="https://twitch.tv/username"
                 value={twitchUrl}
                 onChange={(e) => setTwitchUrl(e.target.value.slice(0, 200))}
                 maxLength={200}
               />
             </div>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={saveProfile.isPending}
-              onClick={() => { setStatusMsg(null); saveProfile.mutate(); }}
-              style={{ alignSelf: 'flex-start', padding: '10px 24px' }}
-            >
-              {saveProfile.isPending ? 'Сохранение...' : 'Сохранить ссылки'}
+          </div>
+
+          {statusMsg && (
+            <div className="mono" style={{ fontSize: '13px', color: statusMsg.kind === 'err' ? 'var(--error)' : 'var(--success)' }}>
+              {statusMsg.text}
+            </div>
+          )}
+
+          <button type="submit" className="btn btn-primary" disabled={saveProfile.isPending} style={{ alignSelf: 'flex-start', padding: '10px 24px' }}>
+            {saveProfile.isPending ? 'Сохранение...' : 'Сохранить профиль'}
+          </button>
+
+          {/* Danger zone */}
+          <div className="card" style={{ padding: '24px' }}>
+            <h3 style={{ fontSize: '18px', marginBottom: '16px', color: 'var(--error)' }}>Опасная зона</h3>
+            <button type="button" onClick={handleSignOut} className="btn" style={{ borderColor: 'var(--error)', color: 'var(--error)', padding: '10px 24px' }}>
+              Выйти из аккаунта
             </button>
           </div>
-        </div>
-
-        {/* Danger zone */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '18px', marginBottom: '16px', color: 'var(--error)' }}>Опасная зона</h3>
-          <button onClick={handleSignOut} className="btn" style={{ borderColor: 'var(--error)', color: 'var(--error)', padding: '10px 24px' }}>
-            Выйти из аккаунта
-          </button>
-        </div>
-      </div>
+        </form>
+      )}
     </div>
   );
 };

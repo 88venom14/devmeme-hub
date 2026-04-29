@@ -175,11 +175,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, mode = 'feed' }) => {
         )}
 
         {showImage && (
-          <div style={{ marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+          <div style={{ marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-main)', textAlign: 'center' }}>
             <img
               src={post.image_url!}
               alt="Post content"
-              style={{ width: '100%', maxHeight: isDetail ? undefined : '220px', objectFit: isDetail ? undefined : 'cover', display: 'block' }}
+              style={{ maxWidth: '100%', maxHeight: isDetail ? '480px' : '220px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
             />
           </div>
         )}
@@ -189,7 +189,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, mode = 'feed' }) => {
             <video
               src={post.video_url!}
               controls
-              style={{ width: '100%', maxHeight: isDetail ? undefined : '220px', display: 'block', backgroundColor: '#000' }}
+              style={{ width: '100%', maxHeight: isDetail ? '480px' : '220px', display: 'block', backgroundColor: '#000' }}
             />
           </div>
         )}
@@ -197,7 +197,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, mode = 'feed' }) => {
         {/* In detail mode, show second media if both exist */}
         {isDetail && post.image_url && post.video_url && (
           <div style={{ marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-            <video src={post.video_url} controls style={{ width: '100%', display: 'block', backgroundColor: '#000' }} />
+            <video src={post.video_url} controls style={{ width: '100%', maxHeight: '480px', display: 'block', backgroundColor: '#000' }} />
           </div>
         )}
 

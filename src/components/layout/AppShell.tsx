@@ -44,7 +44,7 @@ const AppShell: React.FC<AppShellProps> = ({ session }) => {
   const navigate = useNavigate();
 
   const { data: myProfile } = useQuery({
-    queryKey: ['profile', session?.user.id],
+    queryKey: ['my-profile-mini', session?.user.id],
     enabled: !!session?.user.id,
     staleTime: 60_000,
     queryFn: async () => {
