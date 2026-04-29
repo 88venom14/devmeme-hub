@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Code, ExternalLink, Star } from 'lucide-react';
+import { Code, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
@@ -9,7 +9,7 @@ import type { GithubRepoData, PostWithMeta } from '../../lib/supabase';
 import { useSession } from '../../hooks/useSession';
 import { useInvalidatePosts } from '../../hooks/useInvalidatePosts';
 import MarkdownContent from '../MarkdownContent';
-import { LikeIcon, CommentIcon, ShareIcon } from '../icons';
+import { LikeIcon, CommentIcon, ShareIcon, StarIcon } from '../icons';
 
 interface PostCardProps {
   post: PostWithMeta;
@@ -186,13 +186,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, mode = 'feed' }) => {
             onClick={() => toggleStar.mutate()}
             disabled={!userId || toggleStar.isPending}
             className="btn btn-sm"
-            style={{ border: 'none', background: 'transparent', padding: '4px' }}
+            style={{ border: 'none', background: 'none', padding: '4px' }}
             title={userId ? (interactions?.isStarred ? 'Убрать лайк' : 'Лайк') : 'Войдите, чтобы оценить'}
           >
             <LikeIcon size={18} color={interactions?.isStarred ? '#FF8C00' : 'var(--text-secondary)'} filled={interactions?.isStarred} />
             <span style={{ marginLeft: '6px' }}>{starCount}</span>
           </button>
-          <Link to={`/post/${post.id}`} className="btn btn-sm" style={{ border: 'none', background: 'transparent', padding: '4px' }}>
+          <Link to={`/post/${post.id}`} className="btn btn-sm" style={{ border: 'none', background: 'none', padding: '4px' }}>
             <CommentIcon size={18} color="var(--text-secondary)" />
             <span style={{ marginLeft: '6px' }}>{commentCount}</span>
           </Link>
@@ -200,10 +200,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, mode = 'feed' }) => {
             onClick={() => toggleSave.mutate()}
             disabled={!userId || toggleSave.isPending}
             className="btn btn-sm"
-            style={{ border: 'none', background: 'transparent', padding: '4px' }}
+            style={{ border: 'none', background: 'none', padding: '4px' }}
             title={userId ? (interactions?.isSaved ? 'Убрать из сохранённых' : 'Сохранить') : 'Войдите, чтобы сохранить'}
           >
-            <Star size={18} fill={interactions?.isSaved ? 'currentColor' : 'none'} color={interactions?.isSaved ? 'var(--accent-primary)' : 'var(--text-secondary)'} />
+            <StarIcon size={18} color={interactions?.isSaved ? '#FF8C00' : 'var(--text-secondary)'} filled={interactions?.isSaved} />
           </button>
           <button
             onClick={handleShare}
@@ -245,7 +245,7 @@ const GithubRepoPreview = ({ url, repoData }: { url: string, repoData: GithubRep
           )}
           {typeof repoData.stargazers_count === 'number' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Star size={12} />
+              <StarIcon size={12} color="var(--text-secondary)" />
               <span>{repoData.stargazers_count}</span>
             </div>
           )}
