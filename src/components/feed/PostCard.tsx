@@ -2,13 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Code, ExternalLink, Star } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import type { GithubRepoData, PostWithMeta } from '../../lib/supabase';
 import { useSession } from '../../hooks/useSession';
 import { useInvalidatePosts } from '../../hooks/useInvalidatePosts';
+import MarkdownContent from '../MarkdownContent';
 
 interface PostCardProps {
   post: PostWithMeta;
@@ -127,10 +127,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, mode = 'feed' }) => {
     ? {}
     : { display: '-webkit-box' as const, WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' };
 
-  const clampStyle4 = isDetail
-    ? {}
-    : { display: '-webkit-box' as const, WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' };
-
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ padding: '16px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
@@ -165,12 +161,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, mode = 'feed' }) => {
         )}
 
         {post.content_md && (
-          <div style={{
-            marginBottom: '16px', fontSize: '14px',
-            borderLeft: '2px solid var(--border-color)', paddingLeft: '12px',
-            ...clampStyle4,
-          }}>
-            <ReactMarkdown>{post.content_md}</ReactMarkdown>
+          <div style={{ marginBottom: '16px', fontSize: '14px' }}>
+            <MarkdownContent clamp={isDetail ? undefined : 4}>{post.content_md}</MarkdownContent>
           </div>
         )}
 

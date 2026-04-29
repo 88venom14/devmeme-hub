@@ -103,3 +103,10 @@ code, pre {
 .mono {
   font-family: var(--font-mono);
 }
+
+/* Override highlight.js background to match app theme */
+.hljs {
+  background: #1e2127 !important;
+  padding: 14px 16px !important;
+  border-radius: 0 !important;
+}
