@@ -194,12 +194,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, mode = 'feed' }) => {
           </div>
         )}
 
-        {/* In detail mode, show second media if both exist */}
-        {isDetail && post.image_url && post.video_url && (
-          <div style={{ marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-            <video src={post.video_url} controls style={{ width: '100%', maxHeight: '480px', display: 'block', backgroundColor: '#000' }} />
-          </div>
-        )}
 
         {post.github_url && <GithubRepoPreview url={post.github_url} repoData={post.github_repo_json} />}
 
