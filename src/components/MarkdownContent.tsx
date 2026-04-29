@@ -9,36 +9,60 @@ interface Props {
 }
 
 const MarkdownContent: React.FC<Props> = ({ children, clamp }) => {
-  // webkit-line-clamp doesn't work with block elements like <pre>, so use maxHeight instead
-  const lineHeightPx = 22; // 14px font * 1.6 line-height ≈ 22px
-  const wrapperStyle: React.CSSProperties = clamp
-    ? { maxHeight: `${clamp * lineHeightPx}px`, overflow: 'hidden' }
-    : {};
+  const isFeed = !!clamp;
 
   return (
-    <div style={wrapperStyle}>
+    <div style={isFeed ? { maxHeight: '220px', overflow: 'hidden' } : {}}>
       <ReactMarkdown
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         rehypePlugins={[[rehypeHighlight as any, { detect: true, ignoreMissing: true }]]}
         components={{
-          pre: ({ children: c }) => (
-            <pre style={{
-              margin: '8px 0',
-              borderRadius: '6px',
-              border: '1px solid var(--border-color)',
-              overflow: 'auto',
-              fontSize: '13px',
-              lineHeight: '1.6',
+          p: ({ children: c }) => (
+            <p style={{
+              margin: '0 0 6px',
+              ...(isFeed ? {
+                display: '-webkit-box',
+                WebkitLineClamp: clamp,
+                WebkitBoxOrient: 'vertical' as const,
+                overflow: 'hidden',
+              } : {}),
             }}>
               {c}
-            </pre>
+            </p>
           ),
+
+          pre: ({ children: c }) => (
+            <div style={{ position: 'relative', margin: '8px 0' }}>
+              <pre style={{
+                maxHeight: isFeed ? '80px' : undefined,
+                overflow: isFeed ? 'hidden' : 'auto',
+                margin: 0,
+                borderRadius: '6px',
+                border: '1px solid var(--border-color)',
+                fontSize: '13px',
+                lineHeight: '1.6',
+              }}>
+                {c}
+              </pre>
+              {isFeed && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: '32px',
+                  background: 'linear-gradient(transparent, #1e2127)',
+                  borderRadius: '0 0 6px 6px',
+                  pointerEvents: 'none',
+                }} />
+              )}
+            </div>
+          ),
+
           code: ({ className, children: c, ...props }) => {
             if (className) {
-              // block code — highlighted by rehype-highlight
               return <code className={className} {...(props as React.HTMLAttributes<HTMLElement>)}>{c}</code>;
             }
-            // inline code
             return (
               <code
                 style={{
