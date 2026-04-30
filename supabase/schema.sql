@@ -1,4 +1,4 @@
--- DevMeme Hub schema (matches applied migrations: initial_schema + perf_indexes_and_rls_initplan)
+-- DevMeme schema (matches applied migrations: initial_schema + perf_indexes_and_rls_initplan)
 
 -- Profiles
 CREATE TABLE public.profiles (

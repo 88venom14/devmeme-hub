@@ -108,7 +108,7 @@ const AppShell: React.FC<AppShellProps> = () => {
                   fillRule="evenodd"
                 />
               </svg>
-              <span>DevMeme Hub</span>
+              <span>DevMeme</span>
             </Link>
 
             <div style={{ flex: 1, maxWidth: '500px', margin: '0 24px' }}>
