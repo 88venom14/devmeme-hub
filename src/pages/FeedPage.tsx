@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, POST_SELECT } from '../lib/supabase';
 import type { PostWithMeta } from '../lib/supabase';
 import PostCard from '../components/feed/PostCard';
 import PostComposer from '../components/feed/PostComposer';
-import { useSession } from '../hooks/useSession';
+import { useSessionContext } from '../context/SessionContext';
 
-const FeedPage: React.FC = () => {
-  const { session } = useSession();
+const FeedPage: React.FC = memo(() => {
+  const session = useSessionContext();
 
   const { data: posts, isLoading, error } = useQuery({
     queryKey: ['posts'],
@@ -21,6 +21,11 @@ const FeedPage: React.FC = () => {
       return data as unknown as PostWithMeta[];
     },
   });
+
+  const postCards = useMemo(
+    () => posts?.map((post) => <PostCard key={post.id} post={post} />),
+    [posts],
+  );
 
   if (isLoading) {
     return (
@@ -43,9 +48,7 @@ const FeedPage: React.FC = () => {
       {session && <PostComposer />}
 
       {posts && posts.length > 0 ? (
-        <div className="post-grid">
-          {posts.map((post) => <PostCard key={post.id} post={post} />)}
-        </div>
+        <div className="post-grid">{postCards}</div>
       ) : (
         <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
           <div className="text-secondary">Постов пока нет. Будьте первым!</div>
@@ -53,6 +56,8 @@ const FeedPage: React.FC = () => {
       )}
     </div>
   );
-};
+});
+
+FeedPage.displayName = 'FeedPage';
 
 export default FeedPage;

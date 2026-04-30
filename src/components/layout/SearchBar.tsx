@@ -1,8 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+
+type Tag = { id: string; name: string };
 
 function useDebouncedValue<T>(value: T, delay = 200): T {
   const [debounced, setDebounced] = useState(value);
@@ -13,62 +15,89 @@ function useDebouncedValue<T>(value: T, delay = 200): T {
   return debounced;
 }
 
-const SearchBar: React.FC = () => {
+const SearchBar: React.FC = memo(() => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [suggestions, setSuggestions] = useState<Tag[]>([]);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const debounced = useDebouncedValue(query.trim().replace(/^#/, '').toLowerCase(), 200);
+  const debounced = useDebouncedValue(
+    query.trim().replace(/^#/, '').toLowerCase(),
+    200,
+  );
 
-  const { data: suggestions = [] } = useQuery({
-    queryKey: ['tag-suggestions', debounced],
-    enabled: debounced.length > 0,
-    staleTime: 30_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tags')
-        .select('id, name')
-        .ilike('name', `${debounced}%`)
-        .order('name')
-        .limit(8);
-      if (error) throw error;
-      return (data ?? []) as { id: string; name: string }[];
-    },
-  });
+  useEffect(() => {
+    if (!debounced) { setSuggestions([]); return; }
+    let cancelled = false;
+    queryClient.fetchQuery({
+      queryKey: ['tag-suggestions', debounced],
+      staleTime: 30_000,
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('tags')
+          .select('id, name')
+          .ilike('name', `${debounced}%`)
+          .order('name')
+          .limit(8);
+        if (error) throw error;
+        return (data ?? []) as Tag[];
+      },
+    }).then((data) => { if (!cancelled) setSuggestions(data); });
+    return () => { cancelled = true; };
+  }, [debounced, queryClient]);
 
   useEffect(() => {
     setActiveIndex(-1);
   }, [debounced]);
 
-  const goToTag = (name: string) => {
-    const clean = name.trim().toLowerCase().replace(/^#/, '');
-    if (!clean) return;
-    setOpen(false);
-    setQuery('');
-    navigate(`/tag/${encodeURIComponent(clean)}`);
-  };
-
-  const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setOpen(true);
-      setActiveIndex((i) => Math.min(i + 1, suggestions.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIndex((i) => Math.max(i - 1, -1));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (activeIndex >= 0 && suggestions[activeIndex]) {
-        goToTag(suggestions[activeIndex].name);
-      } else if (query.trim()) {
-        goToTag(query);
-      }
-    } else if (e.key === 'Escape') {
+  const goToTag = useCallback(
+    (name: string) => {
+      const clean = name.trim().toLowerCase().replace(/^#/, '');
+      if (!clean) return;
       setOpen(false);
-    }
-  };
+      setQuery('');
+      navigate(`/tag/${encodeURIComponent(clean)}`);
+    },
+    [navigate],
+  );
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value);
+    setOpen(true);
+  }, []);
+
+  const handleFocus = useCallback(() => setOpen(true), []);
+
+  const handleBlur = useCallback(() => {
+    if (blurTimer.current) clearTimeout(blurTimer.current);
+    blurTimer.current = setTimeout(() => setOpen(false), 150);
+  }, []);
+
+  const handleKey = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setOpen(true);
+        setActiveIndex((i) => Math.min(i + 1, suggestions.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIndex((i) => Math.max(i - 1, -1));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (activeIndex >= 0 && suggestions[activeIndex]) {
+          goToTag(suggestions[activeIndex].name);
+        } else if (query.trim()) {
+          goToTag(query);
+        }
+      } else if (e.key === 'Escape') {
+        setOpen(false);
+      }
+    },
+    [activeIndex, suggestions, goToTag, query],
+  );
 
   return (
     <div style={{ position: 'relative', width: '100%' }}>
@@ -87,12 +116,9 @@ const SearchBar: React.FC = () => {
         type="text"
         placeholder="Поиск тегов..."
         value={query}
-        onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => {
-          if (blurTimer.current) clearTimeout(blurTimer.current);
-          blurTimer.current = setTimeout(() => setOpen(false), 150);
-        }}
+        onChange={handleChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         onKeyDown={handleKey}
         role="combobox"
         aria-expanded={open}
@@ -126,7 +152,10 @@ const SearchBar: React.FC = () => {
                 key={s.id}
                 role="option"
                 aria-selected={i === activeIndex}
-                onMouseDown={(e) => { e.preventDefault(); goToTag(s.name); }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  goToTag(s.name);
+                }}
                 onMouseEnter={() => setActiveIndex(i)}
                 style={{
                   padding: '8px 10px',
@@ -137,14 +166,18 @@ const SearchBar: React.FC = () => {
                   color: 'var(--text-primary)',
                 }}
               >
-                <span style={{ color: 'var(--text-secondary)' }}>#</span>{s.name}
+                <span style={{ color: 'var(--text-secondary)' }}>#</span>
+                {s.name}
               </li>
             ))
           ) : (
             <li
               role="option"
               aria-selected={false}
-              onMouseDown={(e) => { e.preventDefault(); if (query.trim()) goToTag(query); }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (query.trim()) goToTag(query);
+              }}
               style={{
                 padding: '8px 10px',
                 borderRadius: '4px',
@@ -153,13 +186,16 @@ const SearchBar: React.FC = () => {
                 color: 'var(--text-secondary)',
               }}
             >
-              Ничего не найдено. Enter — перейти к <span className="mono">#{debounced}</span>
+              Ничего не найдено. Enter — перейти к{' '}
+              <span className="mono">#{debounced}</span>
             </li>
           )}
         </ul>
       )}
     </div>
   );
-};
+});
+
+SearchBar.displayName = 'SearchBar';
 
 export default SearchBar;

@@ -4,6 +4,19 @@
   min-height: 100vh;
 }
 
+.nav-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transform: translateY(0);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.nav-wrapper.nav-hidden {
+  transform: translateY(-100%);
+}
+
 .top-nav {
   height: 64px;
   background-color: var(--bg-surface);
@@ -11,15 +24,9 @@
   display: flex;
   align-items: center;
   padding: 0 24px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
 }
 
 .sub-nav {
-  position: sticky;
-  top: 64px;
-  z-index: 90;
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   padding: 8px 24px;
@@ -58,9 +65,10 @@
 
 .right-sidebar {
   position: sticky;
-  top: 120px;
-  height: calc(100vh - 144px);
+  top: 16px;
+  max-height: calc(100vh - 32px);
   overflow-y: auto;
+  transition: top 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .feed-column {

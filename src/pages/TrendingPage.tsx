@@ -27,17 +27,24 @@ const TrendingPage: React.FC = () => {
     });
   }, [posts]);
 
+  const postCards = useMemo(
+    () => ranked.map((post) => <PostCard key={post.id} post={post} />),
+    [ranked],
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Популярное (7 дней)</h1>
 
       {isLoading && <div className="mono text-secondary">ЗАГРУЗКА...</div>}
-      {error && <div className="mono" style={{ color: 'var(--error)' }}>{(error as Error).message}</div>}
+      {error && (
+        <div className="mono" style={{ color: 'var(--error)' }}>
+          {(error as Error).message}
+        </div>
+      )}
 
       {ranked.length > 0 ? (
-        <div className="post-grid">
-          {ranked.map((post) => <PostCard key={post.id} post={post} />)}
-        </div>
+        <div className="post-grid">{postCards}</div>
       ) : !isLoading ? (
         <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
           <div className="text-secondary">На этой неделе пока пусто.</div>

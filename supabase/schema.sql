@@ -6,6 +6,7 @@ CREATE TABLE public.profiles (
   username TEXT UNIQUE NOT NULL,
   display_name TEXT,
   avatar_url TEXT,
+  banner_url TEXT,
   bio TEXT,
   website_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),

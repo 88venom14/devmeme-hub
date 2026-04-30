@@ -76,10 +76,49 @@ app.get('/api/github/repo', async (req, res) => {
   }
 });
 
+const SERVER_LIMITS = {
+  title: 150,
+  content: 2000,
+  githubUrl: 500,
+  maxTags: 10,
+};
+
+function isValidGithubUrl(value: string): boolean {
+  if (!value) return true;
+  try {
+    const url = new URL(value);
+    return (
+      (url.protocol === 'https:' || url.protocol === 'http:') &&
+      (url.hostname === 'github.com' || url.hostname === 'www.github.com')
+    );
+  } catch {
+    return false;
+  }
+}
+
 // Create Post with GitHub metadata
 app.post('/api/posts', authenticate, async (req: any, res) => {
   const { title, description, content_md, image_url, video_url, github_url } = req.body;
-  
+
+  if (!title || typeof title !== 'string' || title.trim().length === 0) {
+    return res.status(400).json({ error: 'Заголовок обязателен' });
+  }
+  if (title.trim().length > SERVER_LIMITS.title) {
+    return res.status(400).json({ error: `Заголовок не может превышать ${SERVER_LIMITS.title} символов` });
+  }
+  if (description && typeof description === 'string' && description.length > SERVER_LIMITS.content) {
+    return res.status(400).json({ error: `Описание не может превышать ${SERVER_LIMITS.content} символов` });
+  }
+  if (content_md && typeof content_md === 'string' && content_md.length > SERVER_LIMITS.content) {
+    return res.status(400).json({ error: `Контент не может превышать ${SERVER_LIMITS.content} символов` });
+  }
+  if (github_url && !isValidGithubUrl(github_url)) {
+    return res.status(400).json({ error: 'Ссылка GitHub должна быть с домена github.com' });
+  }
+  if (github_url && github_url.length > SERVER_LIMITS.githubUrl) {
+    return res.status(400).json({ error: `GitHub URL не может превышать ${SERVER_LIMITS.githubUrl} символов` });
+  }
+
   let github_repo_json = null;
   if (github_url) {
     // Fetch github data before saving

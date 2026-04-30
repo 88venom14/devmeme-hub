@@ -5,7 +5,8 @@ import { Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../lib/supabase';
 import { uploadPostMedia } from '../lib/storage';
-import { useSession } from '../hooks/useSession';
+import { useSessionContext } from '../context/SessionContext';
+import { LIMITS, isValidUrl, isValidGithubUrl, isValidYoutubeUrl, isValidTwitchUrl, validateUsername } from '../lib/validation';
 
 const GithubIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -28,16 +29,18 @@ const TwitchIcon = () => (
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { session } = useSession();
+  const session = useSessionContext();
   const userId = session?.user.id;
   const userEmail = session?.user.email ?? '';
   const avatarInput = useRef<HTMLInputElement>(null);
+  const bannerInput = useRef<HTMLInputElement>(null);
 
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [website, setWebsite] = useState('');
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [githubUrl, setGithubUrl] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [twitchUrl, setTwitchUrl] = useState('');
@@ -67,6 +70,7 @@ const SettingsPage: React.FC = () => {
     setBio(profile.bio ?? '');
     setWebsite(profile.website_url ?? '');
     setAvatarUrl(profile.avatar_url);
+    setBannerUrl(profile.banner_url ?? null);
     setGithubUrl(profile.github_url ?? '');
     setYoutubeUrl(profile.youtube_url ?? '');
     setTwitchUrl(profile.twitch_url ?? '');
@@ -76,9 +80,23 @@ const SettingsPage: React.FC = () => {
     mutationFn: async () => {
       if (!userId) throw new Error('Вы не авторизованы');
       const cleanUsername = username.trim().toLowerCase();
-      if (!/^[a-z0-9][a-z0-9_-]{1,30}$/.test(cleanUsername)) {
-        throw new Error('Имя пользователя: 2–31 символ, строчные буквы/цифры/-/_, начинается с буквы или цифры.');
-      }
+      const usernameErr = validateUsername(cleanUsername);
+      if (usernameErr) throw new Error(usernameErr);
+
+      if (displayName.trim().length > LIMITS.displayName)
+        throw new Error(`Отображаемое имя: максимум ${LIMITS.displayName} символов`);
+      if (bio.trim().length > LIMITS.bio)
+        throw new Error(`О себе: максимум ${LIMITS.bio} символов`);
+      if (website.trim() && !isValidUrl(website.trim()))
+        throw new Error('Сайт: введите корректный URL (https://...)');
+      if (website.trim().length > LIMITS.websiteUrl)
+        throw new Error(`Сайт: максимум ${LIMITS.websiteUrl} символов`);
+      if (githubUrl.trim() && !isValidGithubUrl(githubUrl.trim()))
+        throw new Error('GitHub: только ссылки на github.com');
+      if (youtubeUrl.trim() && !isValidYoutubeUrl(youtubeUrl.trim()))
+        throw new Error('YouTube: только ссылки на youtube.com или youtu.be');
+      if (twitchUrl.trim() && !isValidTwitchUrl(twitchUrl.trim()))
+        throw new Error('Twitch: только ссылки на twitch.tv');
 
       const payload = {
         id: userId,
@@ -87,6 +105,7 @@ const SettingsPage: React.FC = () => {
         bio: bio.trim() || null,
         website_url: website.trim() || null,
         avatar_url: avatarUrl,
+        banner_url: bannerUrl,
         github_url: githubUrl.trim() || null,
         youtube_url: youtubeUrl.trim() || null,
         twitch_url: twitchUrl.trim() || null,
@@ -117,6 +136,16 @@ const SettingsPage: React.FC = () => {
     onError: (err: Error) => setStatusMsg({ kind: 'err', text: err.message }),
   });
 
+  const uploadBanner = useMutation({
+    mutationFn: async (file: File) => {
+      if (!userId) throw new Error('Вы не авторизованы');
+      const url = await uploadPostMedia(file, userId);
+      setBannerUrl(url);
+      return url;
+    },
+    onError: (err: Error) => setStatusMsg({ kind: 'err', text: err.message }),
+  });
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/login');
@@ -140,6 +169,58 @@ const SettingsPage: React.FC = () => {
           {/* Profile info card */}
           <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <h3 style={{ fontSize: '18px' }}>Информация профиля</h3>
+
+            {/* Banner */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Шапка профиля</label>
+              <div style={{
+                position: 'relative',
+                height: '140px',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-main)',
+                backgroundImage: bannerUrl ? `url(${bannerUrl})` : undefined,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}>
+                <input
+                  ref={bannerInput} type="file" accept="image/*" hidden
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadBanner.mutate(f);
+                  }}
+                />
+                <div style={{ position: 'absolute', bottom: '10px', right: '10px', display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => bannerInput.current?.click()}
+                    disabled={uploadBanner.isPending}
+                    style={{ gap: 6, backdropFilter: 'blur(4px)', background: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.2)', color: '#fff' }}
+                  >
+                    <ImageIcon size={14} />
+                    {uploadBanner.isPending ? 'Загрузка...' : bannerUrl ? 'Изменить' : 'Загрузить шапку'}
+                  </button>
+                  {bannerUrl && (
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      onClick={() => setBannerUrl(null)}
+                      style={{ backdropFilter: 'blur(4px)', background: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.2)', color: '#fff' }}
+                    >
+                      Удалить
+                    </button>
+                  )}
+                </div>
+                {!bannerUrl && (
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                    <span className="text-secondary" style={{ fontSize: '13px' }}>Нет шапки профиля</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-secondary" style={{ fontSize: '12px', marginTop: '4px' }}>Рекомендуется 1500×500 px. PNG / JPG / WEBP.</p>
+            </div>
 
             {/* Avatar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -233,12 +314,15 @@ const SettingsPage: React.FC = () => {
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Сайт</label>
               <input
-                type="url" style={{ width: '100%' }}
+                type="text" style={{ width: '100%', borderColor: website.trim() && !isValidUrl(website.trim()) ? 'var(--error)' : undefined }}
                 placeholder="https://yourwebsite.com"
                 value={website}
-                onChange={(e) => setWebsite(e.target.value.slice(0, 200))}
-                maxLength={200}
+                onChange={(e) => setWebsite(e.target.value.slice(0, LIMITS.websiteUrl))}
+                maxLength={LIMITS.websiteUrl}
               />
+              {website.trim() && !isValidUrl(website.trim()) && (
+                <p className="mono" style={{ fontSize: '12px', color: 'var(--error)', marginTop: '4px' }}>Введите корректный URL (https://...)</p>
+              )}
             </div>
 
             <div>
@@ -247,12 +331,15 @@ const SettingsPage: React.FC = () => {
                 <label style={{ fontSize: '14px' }}>GitHub</label>
               </div>
               <input
-                type="url" style={{ width: '100%' }}
+                type="text" style={{ width: '100%', borderColor: githubUrl.trim() && !isValidGithubUrl(githubUrl.trim()) ? 'var(--error)' : undefined }}
                 placeholder="https://github.com/username"
                 value={githubUrl}
-                onChange={(e) => setGithubUrl(e.target.value.slice(0, 200))}
-                maxLength={200}
+                onChange={(e) => setGithubUrl(e.target.value.slice(0, LIMITS.socialUrl))}
+                maxLength={LIMITS.socialUrl}
               />
+              {githubUrl.trim() && !isValidGithubUrl(githubUrl.trim()) && (
+                <p className="mono" style={{ fontSize: '12px', color: 'var(--error)', marginTop: '4px' }}>Только ссылки на github.com</p>
+              )}
             </div>
 
             <div>
@@ -261,12 +348,15 @@ const SettingsPage: React.FC = () => {
                 <label style={{ fontSize: '14px' }}>YouTube</label>
               </div>
               <input
-                type="url" style={{ width: '100%' }}
+                type="text" style={{ width: '100%', borderColor: youtubeUrl.trim() && !isValidYoutubeUrl(youtubeUrl.trim()) ? 'var(--error)' : undefined }}
                 placeholder="https://youtube.com/@channel"
                 value={youtubeUrl}
-                onChange={(e) => setYoutubeUrl(e.target.value.slice(0, 200))}
-                maxLength={200}
+                onChange={(e) => setYoutubeUrl(e.target.value.slice(0, LIMITS.socialUrl))}
+                maxLength={LIMITS.socialUrl}
               />
+              {youtubeUrl.trim() && !isValidYoutubeUrl(youtubeUrl.trim()) && (
+                <p className="mono" style={{ fontSize: '12px', color: 'var(--error)', marginTop: '4px' }}>Только ссылки на youtube.com или youtu.be</p>
+              )}
             </div>
 
             <div>
@@ -275,12 +365,15 @@ const SettingsPage: React.FC = () => {
                 <label style={{ fontSize: '14px' }}>Twitch</label>
               </div>
               <input
-                type="url" style={{ width: '100%' }}
+                type="text" style={{ width: '100%', borderColor: twitchUrl.trim() && !isValidTwitchUrl(twitchUrl.trim()) ? 'var(--error)' : undefined }}
                 placeholder="https://twitch.tv/username"
                 value={twitchUrl}
-                onChange={(e) => setTwitchUrl(e.target.value.slice(0, 200))}
-                maxLength={200}
+                onChange={(e) => setTwitchUrl(e.target.value.slice(0, LIMITS.socialUrl))}
+                maxLength={LIMITS.socialUrl}
               />
+              {twitchUrl.trim() && !isValidTwitchUrl(twitchUrl.trim()) && (
+                <p className="mono" style={{ fontSize: '12px', color: 'var(--error)', marginTop: '4px' }}>Только ссылки на twitch.tv</p>
+              )}
             </div>
           </div>
 
@@ -290,7 +383,7 @@ const SettingsPage: React.FC = () => {
             </div>
           )}
 
-          <button type="submit" className="btn btn-primary" disabled={saveProfile.isPending} style={{ alignSelf: 'flex-start', padding: '10px 24px' }}>
+          <button type="submit" className="btn btn-primary" disabled={saveProfile.isPending || (!!website.trim() && !isValidUrl(website.trim())) || (!!githubUrl.trim() && !isValidGithubUrl(githubUrl.trim())) || (!!youtubeUrl.trim() && !isValidYoutubeUrl(youtubeUrl.trim())) || (!!twitchUrl.trim() && !isValidTwitchUrl(twitchUrl.trim()))} style={{ alignSelf: 'flex-start', padding: '10px 24px' }}>
             {saveProfile.isPending ? 'Сохранение...' : 'Сохранить профиль'}
           </button>
 

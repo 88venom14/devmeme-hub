@@ -23,12 +23,12 @@ const TwitchProfileIcon = () => (
 import { supabase, POST_SELECT } from '../lib/supabase';
 import type { Profile, PostWithMeta } from '../lib/supabase';
 import PostCard from '../components/feed/PostCard';
-import { useSession } from '../hooks/useSession';
+import { useSessionContext } from '../context/SessionContext';
 
 const ProfilePage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
   const queryClient = useQueryClient();
-  const { session } = useSession();
+  const session = useSessionContext();
   const viewerId = session?.user.id;
 
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
@@ -122,7 +122,14 @@ const ProfilePage: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div className="card">
-        <div style={{ height: '150px', backgroundColor: 'var(--bg-main)', borderBottom: '1px solid var(--border-color)' }} />
+        <div style={{
+          height: '180px',
+          backgroundColor: 'var(--bg-main)',
+          borderBottom: '1px solid var(--border-color)',
+          backgroundImage: profile.banner_url ? `url(${profile.banner_url})` : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }} />
         <div style={{ padding: '0 24px 24px 24px' }}>
           <div style={{
             display: 'flex',

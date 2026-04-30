@@ -6,6 +6,10 @@
   padding: 0;
 }
 
+html {
+  overflow-y: scroll;
+}
+
 body {
   background-color: var(--bg-app);
   color: var(--text-primary);
