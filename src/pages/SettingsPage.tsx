@@ -221,13 +221,11 @@ const SettingsPage: React.FC = () => {
             <FieldLabel>Шапка профиля</FieldLabel>
             <div style={{ position: 'relative', marginBottom: 14 }}>
               <div style={{
-                height: 90, borderRadius: 8, overflow: 'hidden',
+                height: 130, borderRadius: 8, overflow: 'hidden',
                 border: '1px solid var(--border)',
                 background: bannerUrl
-                  ? undefined
+                  ? `url(${bannerUrl}) center / cover no-repeat`
                   : 'radial-gradient(circle at 30% 40%, oklch(0.4 0.12 25) 0%, transparent 50%), radial-gradient(circle at 70% 60%, oklch(0.35 0.1 340) 0%, transparent 50%), oklch(0.22 0.04 60)',
-                backgroundImage: bannerUrl ? `url(${bannerUrl})` : undefined,
-                backgroundSize: 'cover', backgroundPosition: 'center',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {!bannerUrl && (
