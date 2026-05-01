@@ -228,12 +228,18 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
     >
       {/* Author row */}
       <header style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        <Link to={`/profile/${profile?.username}`} onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, textDecoration: 'none' }}>
+        <Link
+          to={`/profile/${profile?.username}`}
+          onClick={(e) => e.stopPropagation()}
+          style={{ flexShrink: 0, textDecoration: 'none', borderRadius: '50%', transition: 'opacity 0.12s' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.8'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+        >
           {profile?.avatar_url ? (
             <img
               src={profile.avatar_url}
               alt={profile.username ?? 'avatar'}
-              style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', backgroundColor: 'var(--bg-2)' }}
+              style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', backgroundColor: 'var(--bg-2)', display: 'block' }}
             />
           ) : (
             <div style={{
@@ -246,7 +252,13 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
         </Link>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 13 }}>
-            <Link to={`/profile/${profile?.username}`} onClick={(e) => e.stopPropagation()} style={{ fontWeight: 600, color: 'var(--text-1)', textDecoration: 'none' }}>
+            <Link
+              to={`/profile/${profile?.username}`}
+              onClick={(e) => e.stopPropagation()}
+              style={{ fontWeight: 600, color: 'var(--text-1)', textDecoration: 'none', transition: 'color 0.12s' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-1)'; }}
+            >
               {profile?.display_name || profile?.username}
             </Link>
             <span style={{ color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
@@ -286,7 +298,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
       )}
 
       {post.content_md && (
-        <div style={{ fontSize: 13 }}>
+        <div style={{ fontSize: 13 }} onClick={(e) => { if ((e.target as HTMLElement).closest('a')) e.stopPropagation(); }}>
           <MarkdownContent clamp={isDetail ? undefined : 3}>{post.content_md}</MarkdownContent>
         </div>
       )}
