@@ -92,7 +92,7 @@ const PostPreview = memo(({
       {/* Content / markdown */}
       {content && (
         <div style={{ fontSize: 13 }}>
-          <MarkdownContent clamp={5}>{content}</MarkdownContent>
+          <MarkdownContent>{content}</MarkdownContent>
         </div>
       )}
 
