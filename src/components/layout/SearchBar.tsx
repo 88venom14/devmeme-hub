@@ -1,7 +1,6 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 type Tag = { id: string; name: string };
@@ -49,9 +48,7 @@ const SearchBar: React.FC = memo(() => {
     return () => { cancelled = true; };
   }, [debounced, queryClient]);
 
-  useEffect(() => {
-    setActiveIndex(-1);
-  }, [debounced]);
+  useEffect(() => { setActiveIndex(-1); }, [debounced]);
 
   const goToTag = useCallback(
     (name: string) => {
@@ -101,20 +98,21 @@ const SearchBar: React.FC = memo(() => {
 
   return (
     <div style={{ position: 'relative', width: '100%' }}>
-      <Search
-        size={16}
+      <svg
+        width="14" height="14"
+        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
         style={{
-          position: 'absolute',
-          left: '10px',
-          top: '50%',
+          position: 'absolute', left: 10, top: '50%',
           transform: 'translateY(-50%)',
-          color: 'var(--text-secondary)',
-          pointerEvents: 'none',
+          color: 'var(--text-3)', pointerEvents: 'none',
         }}
-      />
+      >
+        <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+      </svg>
       <input
         type="text"
-        placeholder="Поиск тегов..."
+        placeholder="поиск тегов, авторов, мемов…"
         value={query}
         onChange={handleChange}
         onFocus={handleFocus}
@@ -123,27 +121,35 @@ const SearchBar: React.FC = memo(() => {
         role="combobox"
         aria-expanded={open}
         aria-autocomplete="list"
-        style={{ width: '100%', paddingLeft: '36px', height: '36px' }}
+        style={{
+          width: '100%', paddingLeft: 32, paddingRight: 40, height: 34,
+          background: 'var(--bg-2)', border: '1px solid var(--border)',
+          borderRadius: 6, fontSize: 13, color: 'var(--text-1)',
+          transition: 'border-color 0.15s',
+        }}
+        onFocusCapture={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'; }}
+        onBlurCapture={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
       />
+      <div style={{
+        position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+        color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 10,
+        padding: '2px 5px', border: '1px solid var(--border)', borderRadius: 3,
+        pointerEvents: 'none',
+      }}>⌘K</div>
 
       {open && debounced.length > 0 && (
         <ul
           role="listbox"
           style={{
             listStyle: 'none',
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            marginTop: '4px',
-            padding: '4px',
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '6px',
-            maxHeight: '280px',
-            overflowY: 'auto',
+            position: 'absolute', top: '100%', left: 0, right: 0,
+            marginTop: 4, padding: 4,
+            background: 'var(--bg-1)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            maxHeight: 280, overflowY: 'auto',
             zIndex: 200,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
           }}
         >
           {suggestions.length > 0 ? (
@@ -152,21 +158,17 @@ const SearchBar: React.FC = memo(() => {
                 key={s.id}
                 role="option"
                 aria-selected={i === activeIndex}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  goToTag(s.name);
-                }}
+                onMouseDown={(e) => { e.preventDefault(); goToTag(s.name); }}
                 onMouseEnter={() => setActiveIndex(i)}
                 style={{
-                  padding: '8px 10px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  background: i === activeIndex ? 'var(--bg-main)' : 'transparent',
-                  color: 'var(--text-primary)',
+                  padding: '7px 10px', borderRadius: 5, cursor: 'pointer',
+                  fontSize: 13,
+                  background: i === activeIndex ? 'var(--bg-2)' : 'transparent',
+                  color: 'var(--text-1)',
+                  fontFamily: 'var(--font-mono)',
                 }}
               >
-                <span style={{ color: 'var(--text-secondary)' }}>#</span>
+                <span style={{ color: 'var(--text-3)' }}>#</span>
                 {s.name}
               </li>
             ))
@@ -174,20 +176,14 @@ const SearchBar: React.FC = memo(() => {
             <li
               role="option"
               aria-selected={false}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                if (query.trim()) goToTag(query);
-              }}
+              onMouseDown={(e) => { e.preventDefault(); if (query.trim()) goToTag(query); }}
               style={{
-                padding: '8px 10px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                color: 'var(--text-secondary)',
+                padding: '7px 10px', borderRadius: 5, cursor: 'pointer',
+                fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-mono)',
               }}
             >
               Ничего не найдено. Enter — перейти к{' '}
-              <span className="mono">#{debounced}</span>
+              <span style={{ color: 'var(--accent)' }}>#{debounced}</span>
             </li>
           )}
         </ul>

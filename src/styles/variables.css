@@ -1,14 +1,32 @@
 :root {
-  --bg-main: #1a1a1a;
-  --bg-app: #0f0f0f;
-  --bg-surface: #0b0b0b;
-  --border-color: #30363d;
-  --text-primary: #e6edf3;
-  --text-secondary: #8b949e;
-  --accent-primary: #D97757;
-  --accent-hover: #D97757;
-  --success: #238636;
-  --error: #da3633;
-  --font-sans: 'Cascadia Code', 'Cascadia Mono', Consolas, "Courier New", monospace;
-  --font-mono: 'Cascadia Code', 'Cascadia Mono', Consolas, "Courier New", monospace;
+  /* New oklch color system */
+  --accent-h: 30;
+  --accent: oklch(0.68 0.16 var(--accent-h));
+  --bg-0: oklch(0.155 0.008 60);
+  --bg-1: oklch(0.185 0.01 60);
+  --bg-2: oklch(0.22 0.01 60);
+  --bg-3: oklch(0.27 0.012 60);
+  --border: oklch(0.27 0.008 60);
+  --border-2: oklch(0.35 0.01 60);
+  --text-1: oklch(0.96 0.005 60);
+  --text-2: oklch(0.78 0.005 60);
+  --text-3: oklch(0.55 0.008 60);
+  --card-radius: 12px;
+
+  --font-ui: 'Cascadia Code', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  --font-mono: 'Cascadia Mono', 'Cascadia Code', Consolas, ui-monospace, monospace;
+  --font-display: 'Cascadia Code', ui-monospace, monospace;
+
+  /* Legacy aliases — keep existing components working */
+  --bg-app: var(--bg-0);
+  --bg-main: var(--bg-2);
+  --bg-surface: var(--bg-1);
+  --border-color: var(--border);
+  --text-primary: var(--text-1);
+  --text-secondary: var(--text-3);
+  --accent-primary: var(--accent);
+  --accent-hover: var(--accent);
+  --success: oklch(0.65 0.15 145);
+  --error: oklch(0.65 0.2 25);
+  --font-sans: var(--font-ui);
 }

@@ -10,6 +10,11 @@ const __dirname = path.dirname(__filename);
 export default defineConfig({
   base: '/',
   plugins: [react(), tailwindcss()],
+  server: {
+    watch: {
+      usePolling: true,
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
