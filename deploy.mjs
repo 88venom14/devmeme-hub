@@ -13,8 +13,10 @@ try {
   rmSync('assets', { recursive: true, force: true });
   cpSync('dist/assets', 'assets', { recursive: true });
 
-  console.log('Writing production index.html...');
-  writeFileSync('index.html', readFileSync('dist/index.html', 'utf8'));
+  console.log('Writing production index.html + 404.html...');
+  const prodHtml = readFileSync('dist/index.html', 'utf8');
+  writeFileSync('index.html', prodHtml);
+  writeFileSync('404.html', prodHtml);
 
   const msg = `Deploy ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`;
   execSync('git add -A', { stdio: 'inherit' });

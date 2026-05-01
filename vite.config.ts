@@ -22,7 +22,17 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    minify: 'esbuild'
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/index.js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: (info) => {
+          if (info.name?.endsWith('.css')) return 'assets/index.css';
+          return 'assets/[name][extname]';
+        },
+      },
+    },
   },
   define: {
     'import.meta.env.VITE_REDIRECT_URL': JSON.stringify('https://88venom14.github.io/devmeme/auth/callback')
