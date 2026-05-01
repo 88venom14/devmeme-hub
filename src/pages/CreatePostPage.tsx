@@ -180,6 +180,7 @@ const CreatePostPage: React.FC = memo(() => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   /* blob URLs for preview */
   const imageObjectUrl = useMemo(() => (imageFile ? URL.createObjectURL(imageFile) : null), [imageFile]);
@@ -240,13 +241,34 @@ const CreatePostPage: React.FC = memo(() => {
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 20, letterSpacing: '-0.01em', color: 'var(--text-1)' }}>
-        Новый пост
-      </h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '-0.01em', color: 'var(--text-1)' }}>
+          Новый пост
+        </h1>
+        <button
+          type="button"
+          onClick={() => setShowPreview((v) => !v)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            padding: '7px 14px',
+            background: showPreview ? 'var(--bg-2)' : 'transparent',
+            border: `1px solid ${showPreview ? 'var(--border-2)' : 'var(--border)'}`,
+            borderRadius: 8, cursor: 'pointer',
+            color: showPreview ? 'var(--text-1)' : 'var(--text-3)',
+            fontSize: 12, fontFamily: 'var(--font-ui)',
+            transition: 'all 0.15s',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+          </svg>
+          {showPreview ? 'Скрыть превью' : 'Предпросмотр'}
+        </button>
+      </div>
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 360px',
+        gridTemplateColumns: showPreview ? '1fr 360px' : '1fr',
         gap: 20,
         alignItems: 'flex-start',
       }}>
@@ -448,24 +470,26 @@ const CreatePostPage: React.FC = memo(() => {
         </div>
 
         {/* ── RIGHT: live preview ── */}
-        <div style={{ position: 'sticky', top: 110 }}>
-          <div style={{
-            fontSize: 11, fontWeight: 600, color: 'var(--text-3)',
-            fontFamily: 'var(--font-mono)', textTransform: 'uppercase',
-            letterSpacing: '0.07em', marginBottom: 10,
-          }}>Предпросмотр</div>
-          <PostPreview
-            title={title}
-            content={content}
-            imageObjectUrl={imageObjectUrl}
-            videoObjectUrl={videoObjectUrl}
-            githubUrl={githubUrl.trim()}
-            tags={tags}
-            displayName={profile?.display_name || ''}
-            username={profile?.username || session?.user.email?.split('@')[0] || ''}
-            avatarUrl={profile?.avatar_url ?? null}
-          />
-        </div>
+        {showPreview && (
+          <div style={{ position: 'sticky', top: 110 }}>
+            <div style={{
+              fontSize: 11, fontWeight: 600, color: 'var(--text-3)',
+              fontFamily: 'var(--font-mono)', textTransform: 'uppercase',
+              letterSpacing: '0.07em', marginBottom: 10,
+            }}>Предпросмотр</div>
+            <PostPreview
+              title={title}
+              content={content}
+              imageObjectUrl={imageObjectUrl}
+              videoObjectUrl={videoObjectUrl}
+              githubUrl={githubUrl.trim()}
+              tags={tags}
+              displayName={profile?.display_name || ''}
+              username={profile?.username || session?.user.email?.split('@')[0] || ''}
+              avatarUrl={profile?.avatar_url ?? null}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
