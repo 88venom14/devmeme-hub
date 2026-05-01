@@ -5,7 +5,7 @@ import { Code, ExternalLink, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
-import type { GithubRepoData, PostWithMeta } from '../../lib/supabase';
+import type { GithubRepoData, PostWithMeta } from '../../types';
 import { useSessionContext } from '../../context/SessionContext';
 import { useInvalidatePosts } from '../../hooks/useInvalidatePosts';
 import MarkdownContent from '../MarkdownContent';

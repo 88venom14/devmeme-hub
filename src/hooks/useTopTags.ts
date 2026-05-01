@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-
-export type TopTag = { id: string; name: string; count: number };
+import type { TopTag } from '../types';
 
 export function useTopTags(limit = 12) {
   return useQuery({

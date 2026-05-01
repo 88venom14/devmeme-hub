@@ -21,7 +21,7 @@ const TwitchProfileIcon = () => (
   </svg>
 );
 import { supabase, POST_SELECT } from '../lib/supabase';
-import type { Profile, PostWithMeta } from '../lib/supabase';
+import type { Profile, PostWithMeta } from '../types';
 import PostCard from '../components/feed/PostCard';
 import { useSessionContext } from '../context/SessionContext';
 

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { supabase, POST_SELECT } from '../lib/supabase';
-import type { Comment, PostWithMeta } from '../lib/supabase';
+import type { Comment, PostWithMeta } from '../types';
 import PostCard from '../components/feed/PostCard';
 import Avatar from '../components/Avatar';
 import { useSessionContext } from '../context/SessionContext';

@@ -1,6 +1,7 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
+import type { MyProfile } from '../../types';
 import SearchBar from './SearchBar';
 import { useTopTags } from '../../hooks/useTopTags';
 import { useMyProfile } from '../../hooks/useMyProfile';
@@ -127,8 +128,6 @@ const AppShell: React.FC<AppShellProps> = () => {
     </div>
   );
 };
-
-type MyProfile = { username: string; display_name: string | null; avatar_url: string | null };
 
 const UserCard = memo(({ myProfile, location }: { myProfile: MyProfile; location: ReturnType<typeof useLocation> }) => {
   const navLinks = [

@@ -2,6 +2,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { labelStyle, inputStyle } from '../styles/forms';
 import { useSessionContext } from '../context/SessionContext';
 import { useInvalidatePosts } from '../hooks/useInvalidatePosts';
 import { useMyProfile } from '../hooks/useMyProfile';
@@ -11,19 +12,6 @@ import { LIMITS, isValidGithubUrl } from '../lib/validation';
 import MarkdownContent from '../components/MarkdownContent';
 import Avatar from '../components/Avatar';
 import { Code, ExternalLink } from 'lucide-react';
-
-/* ── helpers ── */
-const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: 11, fontWeight: 600,
-  color: 'var(--text-3)', fontFamily: 'var(--font-mono)',
-  textTransform: 'uppercase', letterSpacing: '0.06em',
-  marginBottom: 5,
-};
-const inputStyle: React.CSSProperties = {
-  width: '100%', background: 'var(--bg-2)', border: '1px solid var(--border)',
-  borderRadius: 6, padding: '8px 10px', color: 'var(--text-1)',
-  fontSize: 13, fontFamily: 'var(--font-ui)', outline: 'none',
-};
 
 /* ── live preview ── */
 const PostPreview = memo(({

@@ -2,7 +2,7 @@ import React, { memo, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { Profile } from '../lib/supabase';
+import type { Profile } from '../types';
 import { uploadPostMedia } from '../lib/storage';
 import { useSessionContext } from '../context/SessionContext';
 import { LIMITS, isValidUrl, isValidGithubUrl, isValidYoutubeUrl, isValidTwitchUrl, validateUsername } from '../lib/validation';

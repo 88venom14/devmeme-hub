@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, POST_SELECT } from '../lib/supabase';
-import type { PostWithMeta } from '../lib/supabase';
+import type { PostWithMeta } from '../types';
 import PostCard from '../components/feed/PostCard';
 
 const TrendingPage: React.FC = () => {

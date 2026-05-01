@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-
-export type MyProfile = { username: string; display_name: string | null; avatar_url: string | null };
+import type { MyProfile } from '../types';
 
 export const useMyProfile = (userId: string | undefined) =>
   useQuery({

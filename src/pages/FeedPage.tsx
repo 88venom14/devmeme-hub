@@ -2,7 +2,7 @@ import React, { memo, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, POST_SELECT } from '../lib/supabase';
-import type { PostWithMeta } from '../lib/supabase';
+import type { PostWithMeta } from '../types';
 import PostCard from '../components/feed/PostCard';
 import Avatar from '../components/Avatar';
 import { useSessionContext } from '../context/SessionContext';
