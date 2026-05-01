@@ -9,6 +9,7 @@ import type { GithubRepoData, PostWithMeta } from '../../lib/supabase';
 import { useSessionContext } from '../../context/SessionContext';
 import { useInvalidatePosts } from '../../hooks/useInvalidatePosts';
 import MarkdownContent from '../MarkdownContent';
+import Avatar from '../Avatar';
 
 interface PostCardProps {
   post: PostWithMeta;
@@ -209,8 +210,6 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
     overflow: 'hidden',
   };
 
-  const initial = (profile?.display_name || profile?.username || '?').slice(0, 1).toUpperCase();
-
   return (
     <article
       onClick={() => { if (!isDetail) navigate(`/post/${post.id}`); }}
@@ -235,20 +234,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
           onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.8'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
         >
-          {profile?.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt={profile.username ?? 'avatar'}
-              style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', backgroundColor: 'var(--bg-2)', display: 'block' }}
-            />
-          ) : (
-            <div style={{
-              width: 36, height: 36, borderRadius: '50%',
-              background: 'var(--accent)', color: 'oklch(0.15 0.01 60)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 15, fontWeight: 700, flexShrink: 0,
-            }}>{initial}</div>
-          )}
+          <Avatar src={profile?.avatar_url} name={profile?.display_name || profile?.username} size={36} />
         </Link>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 13 }}>

@@ -16,6 +16,14 @@ const rehypePlugins: Parameters<typeof ReactMarkdown>[0]['rehypePlugins'] =
 const remarkPlugins: Parameters<typeof ReactMarkdown>[0]['remarkPlugins'] =
   [remarkGfm];
 
+const safeHref = (url = '') => {
+  try {
+    const p = new URL(url, window.location.href);
+    if (['http:', 'https:', 'mailto:'].includes(p.protocol)) return url;
+  } catch { /* ignore */ }
+  return '#';
+};
+
 const MarkdownContent: React.FC<Props> = memo(({ children, clamp }) => {
   const isFeed = !!clamp;
 
@@ -42,7 +50,7 @@ const MarkdownContent: React.FC<Props> = memo(({ children, clamp }) => {
       h6: ({ children: c }) => <h6 style={{ fontSize: 12, fontWeight: 600, margin: '8px 0 4px', color: 'var(--text-3)' }}>{c}</h6>,
 
       a: ({ href, children: c }) => (
-        <a href={href} target="_blank" rel="noopener noreferrer"
+        <a href={safeHref(href)} target="_blank" rel="noopener noreferrer"
           style={{ color: 'var(--accent)', textDecoration: 'underline', textDecorationColor: 'oklch(from var(--accent) l c h / 0.4)' }}>
           {c}
         </a>

@@ -1,0 +1,1 @@
+import{s as r}from"./index.js";const s="post-media";async function u(t,e){const p=t.name.split(".").pop()?.toLowerCase()??"bin",o=`${e}/${crypto.randomUUID()}.${p}`,{error:a}=await r.storage.from(s).upload(o,t,{contentType:t.type,upsert:!1});if(a)throw a;const{data:n}=r.storage.from(s).getPublicUrl(o);return n.publicUrl}export{u};

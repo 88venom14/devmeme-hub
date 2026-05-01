@@ -1,13 +1,15 @@
-import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useSessionContext } from '../context/SessionContext';
 import { useInvalidatePosts } from '../hooks/useInvalidatePosts';
+import { useMyProfile } from '../hooks/useMyProfile';
 import { uploadPostMedia } from '../lib/storage';
 import { parseTags, attachTagsToPost } from '../lib/tags';
 import { LIMITS, isValidGithubUrl } from '../lib/validation';
 import MarkdownContent from '../components/MarkdownContent';
+import Avatar from '../components/Avatar';
 import { Code, ExternalLink } from 'lucide-react';
 
 /* ── helpers ── */
@@ -32,7 +34,6 @@ const PostPreview = memo(({
   githubUrl: string; tags: string[];
   displayName: string; username: string; avatarUrl: string | null;
 }) => {
-  const initial = (displayName || username || '?')[0].toUpperCase();
   const hasContent = title || content || imageObjectUrl || videoObjectUrl || githubUrl || tags.length > 0;
 
   if (!hasContent) {
@@ -61,17 +62,7 @@ const PostPreview = memo(({
     }}>
       {/* Author */}
       <header style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="avatar"
-            style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-        ) : (
-          <div style={{
-            width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-            background: 'var(--accent)', color: 'oklch(0.15 0.01 60)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 14, fontWeight: 700,
-          }}>{initial}</div>
-        )}
+        <Avatar src={avatarUrl} name={displayName || username} size={34} />
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>
             {displayName || username || 'вы'}
@@ -182,9 +173,11 @@ const CreatePostPage: React.FC = memo(() => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [mode, setMode] = useState<'editor' | 'preview'>('editor');
 
-  /* blob URLs for preview */
+  /* blob URLs for preview — revoke on change/unmount to avoid memory leaks */
   const imageObjectUrl = useMemo(() => (imageFile ? URL.createObjectURL(imageFile) : null), [imageFile]);
   const videoObjectUrl = useMemo(() => (videoFile ? URL.createObjectURL(videoFile) : null), [videoFile]);
+  useEffect(() => () => { if (imageObjectUrl) URL.revokeObjectURL(imageObjectUrl); }, [imageObjectUrl]);
+  useEffect(() => () => { if (videoObjectUrl) URL.revokeObjectURL(videoObjectUrl); }, [videoObjectUrl]);
 
   const tags = useMemo(() => parseTags(tagsInput), [tagsInput]);
   const githubUrlInvalid = useMemo(() => !!githubUrl.trim() && !isValidGithubUrl(githubUrl.trim()), [githubUrl]);
@@ -193,16 +186,7 @@ const CreatePostPage: React.FC = memo(() => {
     [title.length, content.length, tags.length],
   );
 
-  /* profile for avatar in preview */
-  const { data: profile } = useQuery({
-    queryKey: ['profile', session?.user.id],
-    enabled: !!session?.user.id,
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('username, display_name, avatar_url').eq('id', session!.user.id).single();
-      return data as { username: string; display_name: string | null; avatar_url: string | null } | null;
-    },
-  });
+  const { data: profile } = useMyProfile(session?.user.id);
 
   const createPost = useMutation({
     mutationFn: async () => {

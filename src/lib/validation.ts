@@ -7,7 +7,7 @@ export const LIMITS = {
   websiteUrl: 200,
   socialUrl: 200,
   title: 150,
-  content: 2000,
+  content: 8000,
   githubUrl: 500,
   tagsInput: 200,
   maxTags: 10,

@@ -6,7 +6,9 @@ import { ru } from 'date-fns/locale';
 import { supabase, POST_SELECT } from '../lib/supabase';
 import type { Comment, PostWithMeta } from '../lib/supabase';
 import PostCard from '../components/feed/PostCard';
+import Avatar from '../components/Avatar';
 import { useSessionContext } from '../context/SessionContext';
+import { useMyProfile } from '../hooks/useMyProfile';
 import { useInvalidatePosts } from '../hooks/useInvalidatePosts';
 import { LIMITS } from '../lib/validation';
 
@@ -24,23 +26,11 @@ const CommentItem = memo(({
   isReply?: boolean;
 }) => {
   const profile = c.profiles;
-  const initial = ((profile?.display_name || profile?.username) ?? '?')[0].toUpperCase();
   const timeAgo = formatDistanceToNow(new Date(c.created_at), { locale: ru });
 
   return (
     <div style={{ display: 'flex', gap: 10 }}>
-      {profile?.avatar_url ? (
-        <img src={profile.avatar_url} alt={profile.username ?? 'avatar'}
-          style={{ width: isReply ? 26 : 32, height: isReply ? 26 : 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-      ) : (
-        <div style={{
-          width: isReply ? 26 : 32, height: isReply ? 26 : 32,
-          borderRadius: '50%', flexShrink: 0,
-          background: 'var(--accent)', color: 'oklch(0.15 0.01 60)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: isReply ? 11 : 13, fontWeight: 700,
-        }}>{initial}</div>
-      )}
+      <Avatar src={profile?.avatar_url} name={profile?.display_name || profile?.username} size={isReply ? 26 : 32} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 3 }}>
@@ -94,19 +84,7 @@ const PostDetailPage: React.FC = () => {
   const [sort, setSort] = useState<SortMode>('new');
   const [replyTo, setReplyTo] = useState<ReplyTarget>(null);
 
-  const { data: myProfile } = useQuery({
-    queryKey: ['profile', session?.user.id],
-    enabled: !!session?.user.id,
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('username, display_name, avatar_url')
-        .eq('id', session!.user.id)
-        .single();
-      return data as { username: string; display_name: string | null; avatar_url: string | null } | null;
-    },
-  });
+  const { data: myProfile } = useMyProfile(session?.user.id);
 
   const { data: post, isLoading: postLoading, error: postError } = useQuery({
     queryKey: ['post', id],
@@ -270,19 +248,11 @@ const PostDetailPage: React.FC = () => {
             display: 'flex', gap: 10, alignItems: 'flex-start',
             marginBottom: 20,
           }}>
-            {myProfile?.avatar_url ? (
-              <img src={myProfile.avatar_url} alt="avatar"
-                style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-            ) : (
-              <div style={{
-                width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                background: 'var(--accent)', color: 'oklch(0.15 0.01 60)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 13, fontWeight: 700,
-              }}>
-                {(myProfile?.display_name || myProfile?.username || session.user.email?.[0] || '?')[0].toUpperCase()}
-              </div>
-            )}
+            <Avatar
+              src={myProfile?.avatar_url}
+              name={myProfile?.display_name || myProfile?.username || session.user.email}
+              size={32}
+            />
             <div style={{ flex: 1 }}>
               {/* Reply badge */}
               {replyTo && (

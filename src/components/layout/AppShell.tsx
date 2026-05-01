@@ -1,11 +1,11 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '../../lib/supabase';
 import SearchBar from './SearchBar';
 import { useTopTags } from '../../hooks/useTopTags';
-import { useQuery } from '@tanstack/react-query';
+import { useMyProfile } from '../../hooks/useMyProfile';
 import { useSessionContext } from '../../context/SessionContext';
+import Avatar from '../Avatar';
 
 const StableOutlet = memo(() => <Outlet />);
 StableOutlet.displayName = 'StableOutlet';
@@ -13,8 +13,6 @@ StableOutlet.displayName = 'StableOutlet';
 interface AppShellProps {
   session: Session | null;
 }
-
-type MyProfile = { username: string; display_name: string | null; avatar_url: string | null };
 
 const AppShell: React.FC<AppShellProps> = () => {
   const session = useSessionContext();
@@ -29,30 +27,26 @@ const AppShell: React.FC<AppShellProps> = () => {
   }, []);
 
   useEffect(() => {
+    let rafId: number | null = null;
     const onScroll = () => {
-      const y = window.scrollY;
-      if (y < 80) setNavHidden(false);
-      else if (y > lastScrollY.current + 4) setNavHidden(true);
-      else if (y < lastScrollY.current - 4) setNavHidden(false);
-      lastScrollY.current = y;
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const y = window.scrollY;
+        if (y < 80) setNavHidden(false);
+        else if (y > lastScrollY.current + 4) setNavHidden(true);
+        else if (y < lastScrollY.current - 4) setNavHidden(false);
+        lastScrollY.current = y;
+      });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, []);
 
-  const { data: myProfile } = useQuery({
-    queryKey: ['my-profile-mini', session?.user.id],
-    enabled: !!session?.user.id,
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('username, display_name, avatar_url')
-        .eq('id', session!.user.id)
-        .single();
-      return data as MyProfile | null;
-    },
-  });
+  const { data: myProfile } = useMyProfile(session?.user.id);
 
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
@@ -134,9 +128,9 @@ const AppShell: React.FC<AppShellProps> = () => {
   );
 };
 
-const UserCard = memo(({ myProfile, location }: { myProfile: MyProfile; location: ReturnType<typeof useLocation> }) => {
-  const initial = (myProfile.display_name || myProfile.username || '?').slice(0, 1).toUpperCase();
+type MyProfile = { username: string; display_name: string | null; avatar_url: string | null };
 
+const UserCard = memo(({ myProfile, location }: { myProfile: MyProfile; location: ReturnType<typeof useLocation> }) => {
   const navLinks = [
     {
       to: `/profile/${myProfile.username}`,
@@ -163,20 +157,7 @@ const UserCard = memo(({ myProfile, location }: { myProfile: MyProfile; location
   return (
     <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        {myProfile.avatar_url ? (
-          <img
-            src={myProfile.avatar_url}
-            alt={myProfile.username}
-            style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-          />
-        ) : (
-          <div style={{
-            width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
-            background: 'var(--accent)', color: 'oklch(0.15 0.01 60)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18, fontWeight: 700,
-          }}>{initial}</div>
-        )}
+        <Avatar src={myProfile.avatar_url} name={myProfile.display_name || myProfile.username} size={42} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {myProfile.display_name || myProfile.username}

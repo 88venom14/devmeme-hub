@@ -4,21 +4,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useSession } from './hooks/useSession';
 import { SessionContext } from './context/SessionContext';
 import { supabase } from './lib/supabase';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import './styles/variables.css';
 import './styles/global.css';
 import './styles/layout.css';
 
-import FeedPage from './pages/FeedPage';
-import LoginPage from './pages/LoginPage';
-import ProfilePage from './pages/ProfilePage';
-import CreatePostPage from './pages/CreatePostPage';
-import PostDetailPage from './pages/PostDetailPage';
-import SavedPostsPage from './pages/SavedPostsPage';
-import SettingsPage from './pages/SettingsPage';
-import FollowingPage from './pages/FollowingPage';
-import TrendingPage from './pages/TrendingPage';
-import TagPage from './pages/TagPage';
+const FeedPage = React.lazy(() => import('./pages/FeedPage'));
+const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+const CreatePostPage = React.lazy(() => import('./pages/CreatePostPage'));
+const PostDetailPage = React.lazy(() => import('./pages/PostDetailPage'));
+const SavedPostsPage = React.lazy(() => import('./pages/SavedPostsPage'));
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
+const FollowingPage = React.lazy(() => import('./pages/FollowingPage'));
+const TrendingPage = React.lazy(() => import('./pages/TrendingPage'));
+const TagPage = React.lazy(() => import('./pages/TagPage'));
 
 import AppShell from './components/layout/AppShell';
 
@@ -74,7 +75,13 @@ const App: React.FC = () => {
     // SessionContext.Provider wraps everything — one subscription, one source of truth
     <SessionContext.Provider value={session}>
       <QueryClientProvider client={queryClient}>
+        <ErrorBoundary>
         <BrowserRouter>
+          <React.Suspense fallback={
+            <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000', color: '#ff6b00' }}>
+              <div className="mono">LOADING...</div>
+            </div>
+          }>
           <Routes>
             <Route
               path="/login"
@@ -109,7 +116,9 @@ const App: React.FC = () => {
 
             <Route path="*" element={<Navigate to="/feed" replace />} />
           </Routes>
+          </React.Suspense>
         </BrowserRouter>
+        </ErrorBoundary>
       </QueryClientProvider>
     </SessionContext.Provider>
   );

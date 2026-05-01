@@ -4,7 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase, POST_SELECT } from '../lib/supabase';
 import type { PostWithMeta } from '../lib/supabase';
 import PostCard from '../components/feed/PostCard';
+import Avatar from '../components/Avatar';
 import { useSessionContext } from '../context/SessionContext';
+import { useMyProfile } from '../hooks/useMyProfile';
 
 type Sort = 'hot' | 'new' | 'top';
 
@@ -81,7 +83,6 @@ FilterBar.displayName = 'FilterBar';
 
 /* Inline composer — just a clickable prompt that takes user to /post/new */
 const ComposerWidget = memo(({ avatarUrl, username }: { avatarUrl?: string | null; username?: string | null }) => {
-  const initial = (username || '?').slice(0, 1).toUpperCase();
   return (
     <Link
       to="/post/new"
@@ -99,16 +100,7 @@ const ComposerWidget = memo(({ avatarUrl, username }: { avatarUrl?: string | nul
       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)'; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
     >
-      {avatarUrl ? (
-        <img src={avatarUrl} alt={username ?? 'avatar'} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-      ) : (
-        <div style={{
-          width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-          background: 'var(--accent)', color: 'oklch(0.15 0.01 60)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 15, fontWeight: 700,
-        }}>{initial}</div>
-      )}
+      <Avatar src={avatarUrl} name={username} size={36} />
       <div style={{
         flex: 1, background: 'var(--bg-2)', borderRadius: 8,
         padding: '8px 12px', color: 'var(--text-3)', fontSize: 13,
@@ -138,6 +130,7 @@ const FeedPage: React.FC = memo(() => {
 
   const { data: posts, isLoading, error } = useQuery({
     queryKey: ['posts'],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('posts')
@@ -148,15 +141,7 @@ const FeedPage: React.FC = memo(() => {
     },
   });
 
-  const { data: myProfile } = useQuery({
-    queryKey: ['profile', session?.user.id],
-    enabled: !!session?.user.id,
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('username, avatar_url').eq('id', session!.user.id).single();
-      return data as { username: string; avatar_url: string | null } | null;
-    },
-  });
+  const { data: myProfile } = useMyProfile(session?.user.id);
 
   const sortedPosts = useMemo(() => {
     if (!posts) return [];
