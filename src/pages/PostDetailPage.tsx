@@ -94,6 +94,20 @@ const PostDetailPage: React.FC = () => {
   const [sort, setSort] = useState<SortMode>('new');
   const [replyTo, setReplyTo] = useState<ReplyTarget>(null);
 
+  const { data: myProfile } = useQuery({
+    queryKey: ['profile', session?.user.id],
+    enabled: !!session?.user.id,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('username, display_name, avatar_url')
+        .eq('id', session!.user.id)
+        .single();
+      return data as { username: string; display_name: string | null; avatar_url: string | null } | null;
+    },
+  });
+
   const { data: post, isLoading: postLoading, error: postError } = useQuery({
     queryKey: ['post', id],
     enabled: !!id,
@@ -256,14 +270,19 @@ const PostDetailPage: React.FC = () => {
             display: 'flex', gap: 10, alignItems: 'flex-start',
             marginBottom: 20,
           }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-              background: 'var(--accent)', color: 'oklch(0.15 0.01 60)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 13, fontWeight: 700,
-            }}>
-              {(session.user.email?.[0] ?? '?').toUpperCase()}
-            </div>
+            {myProfile?.avatar_url ? (
+              <img src={myProfile.avatar_url} alt="avatar"
+                style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+            ) : (
+              <div style={{
+                width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                background: 'var(--accent)', color: 'oklch(0.15 0.01 60)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, fontWeight: 700,
+              }}>
+                {(myProfile?.display_name || myProfile?.username || session.user.email?.[0] || '?')[0].toUpperCase()}
+              </div>
+            )}
             <div style={{ flex: 1 }}>
               {/* Reply badge */}
               {replyTo && (
