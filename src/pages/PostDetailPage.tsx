@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -11,15 +11,17 @@ import { useInvalidatePosts } from '../hooks/useInvalidatePosts';
 import { LIMITS } from '../lib/validation';
 
 type SortMode = 'new' | 'old';
+type ReplyTarget = { id: string; username: string } | null;
 
+/* ── single comment row ── */
 const CommentItem = memo(({
-  c,
-  canDelete,
-  onDelete,
+  c, canDelete, onDelete, onReply, isReply,
 }: {
   c: Comment;
   canDelete: boolean;
   onDelete: () => void;
+  onReply: () => void;
+  isReply?: boolean;
 }) => {
   const profile = c.profiles;
   const initial = ((profile?.display_name || profile?.username) ?? '?')[0].toUpperCase();
@@ -28,19 +30,18 @@ const CommentItem = memo(({
   return (
     <div style={{ display: 'flex', gap: 10 }}>
       {profile?.avatar_url ? (
-        <img
-          src={profile.avatar_url}
-          alt={profile.username ?? 'avatar'}
-          style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-        />
+        <img src={profile.avatar_url} alt={profile.username ?? 'avatar'}
+          style={{ width: isReply ? 26 : 32, height: isReply ? 26 : 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
       ) : (
         <div style={{
-          width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+          width: isReply ? 26 : 32, height: isReply ? 26 : 32,
+          borderRadius: '50%', flexShrink: 0,
           background: 'var(--accent)', color: 'oklch(0.15 0.01 60)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 13, fontWeight: 700,
+          fontSize: isReply ? 11 : 13, fontWeight: 700,
         }}>{initial}</div>
       )}
+
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 3 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>
@@ -49,11 +50,22 @@ const CommentItem = memo(({
           <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
             {timeAgo} назад
           </span>
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={onReply}
+            style={{
+              background: 'transparent', border: 'none',
+              color: 'var(--text-3)', cursor: 'pointer', padding: '2px 6px',
+              borderRadius: 4, fontSize: 11, fontFamily: 'var(--font-mono)',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-3)'; }}
+          >↩ ответить</button>
           {canDelete && (
             <button
               onClick={onDelete}
               style={{
-                marginLeft: 'auto', background: 'transparent', border: 'none',
+                background: 'transparent', border: 'none',
                 color: 'var(--text-3)', cursor: 'pointer', padding: '2px 4px',
                 borderRadius: 4, fontSize: 11, fontFamily: 'var(--font-mono)',
               }}
@@ -69,24 +81,25 @@ const CommentItem = memo(({
 });
 CommentItem.displayName = 'CommentItem';
 
+/* ── main page ── */
 const PostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const invalidatePosts = useInvalidatePosts();
   const session = useSessionContext();
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+
   const [text, setText] = useState('');
   const [sort, setSort] = useState<SortMode>('new');
+  const [replyTo, setReplyTo] = useState<ReplyTarget>(null);
 
   const { data: post, isLoading: postLoading, error: postError } = useQuery({
     queryKey: ['post', id],
     enabled: !!id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('posts')
-        .select(POST_SELECT)
-        .eq('id', id!)
-        .single();
+        .from('posts').select(POST_SELECT).eq('id', id!).single();
       if (error) throw error;
       return data as unknown as PostWithMeta;
     },
@@ -106,13 +119,32 @@ const PostDetailPage: React.FC = () => {
     },
   });
 
-  const sortedComments = React.useMemo(() => {
+  /* group into threads */
+  const threads = React.useMemo(() => {
     if (!comments) return [];
-    const arr = [...comments];
-    if (sort === 'new') arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    if (sort === 'old') arr.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-    return arr;
+    const roots = comments.filter((c) => !c.parent_id);
+    const repliesMap = new Map<string, Comment[]>();
+    comments
+      .filter((c) => !!c.parent_id)
+      .forEach((c) => {
+        const arr = repliesMap.get(c.parent_id!) ?? [];
+        arr.push(c);
+        repliesMap.set(c.parent_id!, arr);
+      });
+
+    const sorted = [...roots];
+    if (sort === 'new') sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    if (sort === 'old') sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+    return sorted.map((root) => ({
+      root,
+      replies: (repliesMap.get(root.id) ?? []).sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      ),
+    }));
   }, [comments, sort]);
+
+  const totalComments = comments?.length ?? 0;
 
   const deleteComment = useMutation({
     mutationFn: async (commentId: string) => {
@@ -130,37 +162,41 @@ const PostDetailPage: React.FC = () => {
       if (!session) throw new Error('Войдите, чтобы оставить комментарий');
       if (!id) throw new Error('Не найден ID поста');
       const trimmed = text.trim();
-      if (trimmed.length === 0) throw new Error('Комментарий не может быть пустым');
+      if (!trimmed) throw new Error('Комментарий не может быть пустым');
       if (trimmed.length > LIMITS.comment) throw new Error(`Максимум ${LIMITS.comment} символов`);
-      const { error } = await supabase
-        .from('comments')
-        .insert({ post_id: id, user_id: session.user.id, text: trimmed });
+      const { error } = await supabase.from('comments').insert({
+        post_id: id,
+        user_id: session.user.id,
+        text: trimmed,
+        parent_id: replyTo?.id ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
       setText('');
+      setReplyTo(null);
       queryClient.invalidateQueries({ queryKey: ['comments', id] });
       invalidatePosts();
     },
   });
 
-  if (postLoading) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
-        загрузка…
-      </div>
-    );
-  }
+  const handleReply = (target: ReplyTarget) => {
+    setReplyTo(target);
+    composerRef.current?.focus();
+    composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
-  if (postError || !post) {
-    return (
-      <div style={{ padding: '20px', color: 'var(--error)', fontFamily: 'var(--font-mono)' }}>
-        ПОСТ_НЕ_НАЙДЕН
-      </div>
-    );
-  }
+  if (postLoading) return (
+    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+      загрузка…
+    </div>
+  );
 
-  const totalComments = comments?.length ?? 0;
+  if (postError || !post) return (
+    <div style={{ padding: '20px', color: 'var(--error)', fontFamily: 'var(--font-mono)' }}>
+      ПОСТ_НЕ_НАЙДЕН
+    </div>
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -174,9 +210,7 @@ const PostDetailPage: React.FC = () => {
         }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-1)'; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-3)'; }}
-      >
-        ← назад
-      </button>
+      >← назад</button>
 
       <PostCard post={post} mode="detail" />
 
@@ -200,18 +234,14 @@ const PostDetailPage: React.FC = () => {
             borderRadius: 6, padding: 2,
           }}>
             {(['new', 'old'] as SortMode[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => setSort(s)}
-                style={{
-                  padding: '3px 10px',
-                  background: sort === s ? 'var(--bg-3)' : 'transparent',
-                  border: 'none', borderRadius: 4,
-                  color: sort === s ? 'var(--accent)' : 'var(--text-3)',
-                  fontSize: 11, fontFamily: 'var(--font-mono)',
-                  fontWeight: sort === s ? 600 : 400, cursor: 'pointer',
-                }}
-              >
+              <button key={s} onClick={() => setSort(s)} style={{
+                padding: '3px 10px',
+                background: sort === s ? 'var(--bg-3)' : 'transparent',
+                border: 'none', borderRadius: 4,
+                color: sort === s ? 'var(--accent)' : 'var(--text-3)',
+                fontSize: 11, fontFamily: 'var(--font-mono)',
+                fontWeight: sort === s ? 600 : 400, cursor: 'pointer',
+              }}>
                 {s === 'new' ? 'новые' : 'старые'}
               </button>
             ))}
@@ -235,7 +265,27 @@ const PostDetailPage: React.FC = () => {
               {(session.user.email?.[0] ?? '?').toUpperCase()}
             </div>
             <div style={{ flex: 1 }}>
+              {/* Reply badge */}
+              {replyTo && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'oklch(from var(--accent) l c h / 0.1)',
+                  border: '1px solid oklch(from var(--accent) l c h / 0.3)',
+                  borderRadius: 6, padding: '3px 8px', marginBottom: 6,
+                  fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--accent)',
+                }}>
+                  ↩ ответ для @{replyTo.username}
+                  <button
+                    onClick={() => setReplyTo(null)}
+                    style={{
+                      background: 'transparent', border: 'none',
+                      color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1,
+                    }}
+                  >×</button>
+                </div>
+              )}
               <textarea
+                ref={composerRef}
                 value={text}
                 onChange={(e) => setText(e.target.value.slice(0, LIMITS.comment + 10))}
                 onKeyDown={(e) => {
@@ -244,7 +294,7 @@ const PostDetailPage: React.FC = () => {
                     if (text.trim() && !addComment.isPending) addComment.mutate();
                   }
                 }}
-                placeholder="напишите комментарий…"
+                placeholder={replyTo ? `ответить @${replyTo.username}…` : 'напишите комментарий…'}
                 rows={2}
                 style={{
                   width: '100%', background: 'var(--bg-2)',
@@ -261,14 +311,11 @@ const PostDetailPage: React.FC = () => {
                     : '⌘+Enter для отправки'}
                 </span>
                 <div style={{ flex: 1 }} />
-                <button
-                  onClick={() => { setText(''); }}
-                  style={{
-                    background: 'transparent', border: '1px solid var(--border)', borderRadius: 6,
-                    padding: '4px 10px', fontSize: 12, fontFamily: 'var(--font-ui)',
-                    color: 'var(--text-3)', cursor: 'pointer',
-                  }}
-                >Очистить</button>
+                <button onClick={() => { setText(''); setReplyTo(null); }} style={{
+                  background: 'transparent', border: '1px solid var(--border)', borderRadius: 6,
+                  padding: '4px 10px', fontSize: 12, fontFamily: 'var(--font-ui)',
+                  color: 'var(--text-3)', cursor: 'pointer',
+                }}>Очистить</button>
                 <button
                   onClick={() => { if (text.trim() && !addComment.isPending) addComment.mutate(); }}
                   disabled={!text.trim() || addComment.isPending || text.length > LIMITS.comment}
@@ -279,7 +326,7 @@ const PostDetailPage: React.FC = () => {
                     opacity: (!text.trim() || addComment.isPending || text.length > LIMITS.comment) ? 0.5 : 1,
                   }}
                 >
-                  {addComment.isPending ? '...' : 'Отправить'}
+                  {addComment.isPending ? '...' : replyTo ? 'Ответить' : 'Отправить'}
                 </button>
               </div>
               {addComment.error && (
@@ -304,17 +351,35 @@ const PostDetailPage: React.FC = () => {
           <div style={{ color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
             загрузка комментариев…
           </div>
-        ) : sortedComments.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {sortedComments.map((c) => (
-              <CommentItem
-                key={c.id}
-                c={c}
-                canDelete={session?.user.id === c.user_id}
-                onDelete={() => {
-                  if (window.confirm('Удалить комментарий?')) deleteComment.mutate(c.id);
-                }}
-              />
+        ) : threads.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {threads.map(({ root, replies }) => (
+              <div key={root.id}>
+                <CommentItem
+                  c={root}
+                  canDelete={session?.user.id === root.user_id}
+                  onDelete={() => { if (window.confirm('Удалить комментарий?')) deleteComment.mutate(root.id); }}
+                  onReply={() => handleReply({ id: root.id, username: root.profiles?.username ?? 'anon' })}
+                />
+                {replies.length > 0 && (
+                  <div style={{
+                    marginTop: 10, marginLeft: 42,
+                    paddingLeft: 14, borderLeft: '2px solid var(--border)',
+                    display: 'flex', flexDirection: 'column', gap: 12,
+                  }}>
+                    {replies.map((r) => (
+                      <CommentItem
+                        key={r.id}
+                        c={r}
+                        isReply
+                        canDelete={session?.user.id === r.user_id}
+                        onDelete={() => { if (window.confirm('Удалить ответ?')) deleteComment.mutate(r.id); }}
+                        onReply={() => handleReply({ id: root.id, username: root.profiles?.username ?? 'anon' })}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         ) : (
