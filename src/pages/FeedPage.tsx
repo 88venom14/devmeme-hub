@@ -12,17 +12,17 @@ const SORTS: { id: Sort; label: string; icon: React.ReactNode }[] = [
   {
     id: 'hot',
     label: 'Горячее',
-    icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c4 0 7-3 7-7 0-3-2-5-3-6 0 2-1 3-2 3 0-3-1-6-4-9-1 4-3 5-4 7s-1 3-1 5c0 4 3 7 7 7z"/></svg>,
+    icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c4 0 7-3 7-7 0-3-2-5-3-6 0 2-1 3-2 3 0-3-1-6-4-9-1 4-3 5-4 7s-1 3-1 5c0 4 3 7 7 7z" /></svg>,
   },
   {
     id: 'new',
     label: 'Новое',
-    icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v6M12 15v6M3 12h6M15 12h6M6 6l3 3M15 15l3 3M6 18l3-3M15 9l3-3"/></svg>,
+    icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v6M12 15v6M3 12h6M15 12h6M6 6l3 3M15 15l3 3M6 18l3-3M15 9l3-3" /></svg>,
   },
   {
     id: 'top',
     label: 'Топ',
-    icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>,
+    icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="m3 17 6-6 4 4 8-8" /><path d="M14 7h7v7" /></svg>,
   },
 ];
 
@@ -118,8 +118,8 @@ const ComposerWidget = memo(({ avatarUrl, username }: { avatarUrl?: string | nul
       </div>
       <div style={{ display: 'flex', gap: 4 }}>
         {[
-          <svg key="img" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m3 17 6-6 11 11"/></svg>,
-          <svg key="vid" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 9 5-3v12l-5-3z"/></svg>,
+          <svg key="img" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m3 17 6-6 11 11" /></svg>,
+          <svg key="vid" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="13" height="14" rx="2" /><path d="m16 9 5-3v12l-5-3z" /></svg>,
         ].map((icon, i) => (
           <div key={i} style={{
             background: 'transparent', color: 'var(--text-3)', padding: 7, borderRadius: 5, display: 'flex',
@@ -208,7 +208,7 @@ const FeedPage: React.FC = memo(() => {
           border: '1px dashed var(--border)',
           borderRadius: 'var(--card-radius)', color: 'var(--text-3)',
         }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 10 }}><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 10 }}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
           <div style={{ fontSize: 14, marginTop: 4 }}>Постов пока нет. Будьте первым!</div>
         </div>
       )}

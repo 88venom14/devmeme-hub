@@ -217,8 +217,8 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
         background: 'var(--bg-1)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--card-radius)',
-        padding: 14,
-        display: 'flex', flexDirection: 'column', gap: 10,
+        padding: 18,
+        display: 'flex', flexDirection: 'column', gap: 12,
         transition: 'border-color 0.15s',
       }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)'; }}
@@ -231,14 +231,14 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
             <img
               src={profile.avatar_url}
               alt={profile.username ?? 'avatar'}
-              style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', backgroundColor: 'var(--bg-2)' }}
+              style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', backgroundColor: 'var(--bg-2)' }}
             />
           ) : (
             <div style={{
-              width: 32, height: 32, borderRadius: '50%',
+              width: 36, height: 36, borderRadius: '50%',
               background: 'var(--accent)', color: 'oklch(0.15 0.01 60)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 14, fontWeight: 700, flexShrink: 0,
+              fontSize: 15, fontWeight: 700, flexShrink: 0,
             }}>{initial}</div>
           )}
         </Link>
@@ -262,7 +262,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
         <h2
           style={{
             margin: 0,
-            fontSize: 15, fontWeight: 600, lineHeight: 1.3,
+            fontSize: 16, fontWeight: 600, lineHeight: 1.3,
             color: 'var(--text-1)',
             ...(isDetail ? {} : {
               display: '-webkit-box',
@@ -302,7 +302,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
             alt="Post media"
             style={{
               maxWidth: '100%',
-              maxHeight: isDetail ? '480px' : '220px',
+              maxHeight: isDetail ? '480px' : '280px',
               objectFit: 'contain',
               display: 'block', margin: '0 auto',
             }}
@@ -315,7 +315,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
           <video
             src={post.video_url!}
             controls
-            style={{ width: '100%', maxHeight: isDetail ? '480px' : '220px', display: 'block', backgroundColor: '#000' }}
+            style={{ width: '100%', maxHeight: isDetail ? '480px' : '280px', display: 'block', backgroundColor: '#000' }}
           />
         </div>
       )}

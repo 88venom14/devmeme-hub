@@ -205,8 +205,8 @@ const SettingsPage: React.FC = () => {
     (!!twitchUrl.trim() && !isValidTwitchUrl(twitchUrl.trim()));
 
   return (
-    <div style={{ maxWidth: 720 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 20px', letterSpacing: '-0.01em', color: 'var(--text-1)' }}>
+    <div style={{ maxWidth: 880 }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 20px', letterSpacing: '-0.01em', color: 'var(--text-1)' }}>
         Настройки
       </h1>
 
@@ -383,7 +383,7 @@ const SettingsPage: React.FC = () => {
               opacity: formInvalid ? 0.6 : 1, marginBottom: 14,
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
             {saveProfile.isPending ? 'Сохранение...' : 'Сохранить профиль'}
           </button>
         </form>
