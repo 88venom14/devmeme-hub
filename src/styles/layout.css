@@ -95,6 +95,7 @@
   max-height: calc(100vh - 32px);
   overflow-y: auto;
   scrollbar-width: none;
+  transition: top 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .right-sidebar::-webkit-scrollbar {
