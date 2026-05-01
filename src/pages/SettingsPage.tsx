@@ -221,7 +221,7 @@ const SettingsPage: React.FC = () => {
             <FieldLabel>Шапка профиля</FieldLabel>
             <div style={{ position: 'relative', marginBottom: 14 }}>
               <div style={{
-                height: 130, borderRadius: 8, overflow: 'hidden',
+                height: 180, borderRadius: 8, overflow: 'hidden',
                 border: '1px solid var(--border)',
                 background: bannerUrl
                   ? `url(${bannerUrl}) center / cover no-repeat`
