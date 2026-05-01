@@ -240,7 +240,10 @@ const SettingsPage: React.FC = () => {
                       background: 'oklch(0.1 0.01 60 / 0.7)', backdropFilter: 'blur(4px)',
                       border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6,
                       padding: '4px 10px', fontSize: 12, color: '#fff', cursor: 'pointer',
-                    }}>
+                    }}
+                    onMouseEnter={(e) => { if (!uploadBanner.isPending) (e.currentTarget as HTMLElement).style.filter = 'brightness(1.2)'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = ''; }}
+                  >
                     {uploadBanner.isPending ? 'загрузка…' : bannerUrl ? 'Изменить' : 'Загрузить'}
                   </button>
                   {bannerUrl && (
@@ -249,7 +252,10 @@ const SettingsPage: React.FC = () => {
                         background: 'oklch(0.1 0.01 60 / 0.7)', backdropFilter: 'blur(4px)',
                         border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6,
                         padding: '4px 10px', fontSize: 12, color: '#fff', cursor: 'pointer',
-                      }}>Удалить</button>
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(1.2)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = ''; }}
+                    >Удалить</button>
                   )}
                 </div>
               </div>
@@ -280,7 +286,10 @@ const SettingsPage: React.FC = () => {
                     background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6,
                     padding: '6px 12px', fontSize: 12, color: 'var(--text-1)', cursor: 'pointer',
                     fontFamily: 'var(--font-ui)',
-                  }}>
+                  }}
+                  onMouseEnter={(e) => { if (!uploadAvatar.isPending) (e.currentTarget as HTMLElement).style.filter = 'brightness(1.12)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = ''; }}
+                >
                   {uploadAvatar.isPending ? 'загрузка…' : 'Загрузить аватар'}
                 </button>
                 {avatarUrl && (
@@ -288,7 +297,10 @@ const SettingsPage: React.FC = () => {
                     style={{
                       background: 'transparent', border: '1px solid var(--border)', borderRadius: 6,
                       padding: '6px 12px', fontSize: 12, color: 'var(--text-3)', cursor: 'pointer',
-                    }}>Удалить</button>
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-3)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
+                  >Удалить</button>
                 )}
               </div>
             </div>
@@ -380,7 +392,10 @@ const SettingsPage: React.FC = () => {
               color: 'oklch(0.15 0.01 60)', cursor: formInvalid ? 'not-allowed' : 'pointer',
               opacity: formInvalid ? 0.6 : 1, marginBottom: 14,
               display: 'flex', alignItems: 'center', gap: 8,
-            }}>
+            }}
+            onMouseEnter={(e) => { if (!formInvalid) (e.currentTarget as HTMLElement).style.filter = 'brightness(1.1)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = ''; }}
+          >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
             {saveProfile.isPending ? 'Сохранение...' : 'Сохранить профиль'}
           </button>

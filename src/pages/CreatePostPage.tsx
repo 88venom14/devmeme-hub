@@ -224,6 +224,8 @@ const CreatePostPage: React.FC = memo(() => {
         fontSize: 13, fontFamily: 'var(--font-ui)', fontWeight: mode === target ? 600 : 400,
         transition: 'all 0.15s',
       }}
+      onMouseEnter={(e) => { if (mode !== target) { (e.currentTarget as HTMLElement).style.background = 'var(--bg-2)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-1)'; } }}
+      onMouseLeave={(e) => { if (mode !== target) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-3)'; } }}
     >{label}</button>
   );
 
@@ -364,7 +366,10 @@ const CreatePostPage: React.FC = memo(() => {
                     color: imageFile ? 'oklch(0.75 0.15 145)' : 'var(--text-3)',
                     fontSize: 12, fontFamily: 'var(--font-ui)',
                     transition: 'all 0.15s',
-                  }}>
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(1.12)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = ''; }}
+                >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m3 17 6-6 11 11" />
                   </svg>
@@ -381,7 +386,10 @@ const CreatePostPage: React.FC = memo(() => {
                     color: videoFile ? 'oklch(0.75 0.15 220)' : 'var(--text-3)',
                     fontSize: 12, fontFamily: 'var(--font-ui)',
                     transition: 'all 0.15s',
-                  }}>
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(1.12)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = ''; }}
+                >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="5" width="13" height="14" rx="2" /><path d="m16 9 5-3v12l-5-3z" />
                   </svg>
@@ -396,6 +404,8 @@ const CreatePostPage: React.FC = memo(() => {
                       border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer',
                       color: 'var(--text-3)', fontSize: 12,
                     }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-3)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)'; (e.currentTarget as HTMLElement).style.color = 'var(--error)'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-3)'; }}
                     title="Удалить медиа">✕</button>
                 )}
               </div>
@@ -418,7 +428,10 @@ const CreatePostPage: React.FC = memo(() => {
                   background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8,
                   padding: '9px 18px', fontSize: 13, fontFamily: 'var(--font-ui)',
                   color: 'var(--text-1)', cursor: 'pointer',
-                }}>
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(1.12)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = ''; }}
+              >
                 Отмена
               </button>
               <button type="submit" disabled={!canSubmit}
@@ -428,7 +441,10 @@ const CreatePostPage: React.FC = memo(() => {
                   color: 'oklch(0.15 0.01 60)', cursor: canSubmit ? 'pointer' : 'not-allowed',
                   opacity: canSubmit ? 1 : 0.5,
                   display: 'flex', alignItems: 'center', gap: 8,
-                }}>
+                }}
+                onMouseEnter={(e) => { if (canSubmit) (e.currentTarget as HTMLElement).style.filter = 'brightness(1.1)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = ''; }}
+              >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
                 </svg>
@@ -463,7 +479,10 @@ const CreatePostPage: React.FC = memo(() => {
                 background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8,
                 padding: '9px 18px', fontSize: 13, fontFamily: 'var(--font-ui)',
                 color: 'var(--text-1)', cursor: 'pointer',
-              }}>
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(1.12)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = ''; }}
+            >
               Отмена
             </button>
             <button
@@ -476,7 +495,10 @@ const CreatePostPage: React.FC = memo(() => {
                 color: 'oklch(0.15 0.01 60)', cursor: canSubmit ? 'pointer' : 'not-allowed',
                 opacity: canSubmit ? 1 : 0.5,
                 display: 'flex', alignItems: 'center', gap: 8,
-              }}>
+              }}
+              onMouseEnter={(e) => { if (canSubmit) (e.currentTarget as HTMLElement).style.filter = 'brightness(1.1)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = ''; }}
+            >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
               </svg>

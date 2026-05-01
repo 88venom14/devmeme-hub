@@ -70,6 +70,8 @@ const FilterBar = memo(({ sort, setSort, postCount }: {
             display: 'flex', alignItems: 'center', gap: 5,
             transition: 'color 0.12s, background 0.12s',
           }}
+          onMouseEnter={(e) => { if (sort !== s.id) (e.currentTarget as HTMLElement).style.background = 'var(--bg-2)'; }}
+          onMouseLeave={(e) => { if (sort !== s.id) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
         >
           {s.icon}
           {s.label}

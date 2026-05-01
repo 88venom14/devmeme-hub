@@ -52,6 +52,11 @@ button {
   cursor: pointer;
   font-family: inherit;
   min-width: 0;
+  transition: filter 0.15s, background 0.12s, border-color 0.12s, color 0.12s, opacity 0.12s;
+}
+
+button:disabled {
+  cursor: not-allowed;
 }
 
 input,

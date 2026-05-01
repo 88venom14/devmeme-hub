@@ -233,7 +233,10 @@ const PostDetailPage: React.FC = () => {
                 color: sort === s ? 'var(--accent)' : 'var(--text-3)',
                 fontSize: 11, fontFamily: 'var(--font-mono)',
                 fontWeight: sort === s ? 600 : 400, cursor: 'pointer',
-              }}>
+              }}
+                onMouseEnter={(e) => { if (sort !== s) (e.currentTarget as HTMLElement).style.background = 'var(--bg-2)'; }}
+                onMouseLeave={(e) => { if (sort !== s) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+              >
                 {s === 'new' ? 'новые' : 'старые'}
               </button>
             ))}
@@ -304,7 +307,10 @@ const PostDetailPage: React.FC = () => {
                   background: 'transparent', border: '1px solid var(--border)', borderRadius: 6,
                   padding: '4px 10px', fontSize: 12, fontFamily: 'var(--font-ui)',
                   color: 'var(--text-3)', cursor: 'pointer',
-                }}>Очистить</button>
+                }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-3)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
+                >Очистить</button>
                 <button
                   onClick={() => { if (text.trim() && !addComment.isPending) addComment.mutate(); }}
                   disabled={!text.trim() || addComment.isPending || text.length > LIMITS.comment}
@@ -314,6 +320,8 @@ const PostDetailPage: React.FC = () => {
                     fontWeight: 600, color: 'oklch(0.15 0.01 60)', cursor: 'pointer',
                     opacity: (!text.trim() || addComment.isPending || text.length > LIMITS.comment) ? 0.5 : 1,
                   }}
+                  onMouseEnter={(e) => { if (text.trim() && !addComment.isPending && text.length <= LIMITS.comment) (e.currentTarget as HTMLElement).style.filter = 'brightness(1.1)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = ''; }}
                 >
                   {addComment.isPending ? '...' : replyTo ? 'Ответить' : 'Отправить'}
                 </button>

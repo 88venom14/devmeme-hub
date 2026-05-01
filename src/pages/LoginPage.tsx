@@ -136,7 +136,7 @@ const LoginPage: React.FC = () => {
           <h1 style={{
             fontSize: '1.9rem', fontWeight: 700, color: 'var(--accent)',
             fontFamily: 'var(--font-display)', letterSpacing: '-0.02em',
-          }}>devmeme</h1>
+          }}>devMeme</h1>
         </div>
         <p style={{ fontSize: 13, color: 'var(--text-3)', fontFamily: 'var(--font-ui)' }}>
           Социальная платформа для технических мемов и IT-проектов.
@@ -169,6 +169,8 @@ const LoginPage: React.FC = () => {
                 fontWeight: mode === m ? 600 : 400,
                 cursor: 'pointer', transition: 'all 0.12s',
               }}
+              onMouseEnter={(e) => { if (mode !== m) (e.currentTarget as HTMLElement).style.background = 'var(--bg-2)'; }}
+              onMouseLeave={(e) => { if (mode !== m) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             >
               {m === 'signin' ? 'Войти' : 'Регистрация'}
             </button>
@@ -249,8 +251,10 @@ const LoginPage: React.FC = () => {
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               transition: 'filter 0.15s',
             }}
+            onMouseEnter={(e) => { if (!busy && email && password) (e.currentTarget as HTMLElement).style.filter = 'brightness(1.1)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = ''; }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
             {busy ? 'Загрузка...' : mode === 'signin' ? 'Войти через email' : 'Создать аккаунт'}
           </button>
         </form>
