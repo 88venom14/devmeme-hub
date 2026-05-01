@@ -180,7 +180,7 @@ const CreatePostPage: React.FC = memo(() => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
+  const [mode, setMode] = useState<'editor' | 'preview'>('editor');
 
   /* blob URLs for preview */
   const imageObjectUrl = useMemo(() => (imageFile ? URL.createObjectURL(imageFile) : null), [imageFile]);
@@ -239,40 +239,37 @@ const CreatePostPage: React.FC = memo(() => {
 
   const canSubmit = !!title.trim() && !createPost.isPending && !isOverLimit && !githubUrlInvalid;
 
+  const tabBtn = (label: string, target: 'editor' | 'preview') => (
+    <button
+      type="button"
+      onClick={() => setMode(target)}
+      style={{
+        padding: '6px 16px',
+        background: mode === target ? 'var(--accent)' : 'transparent',
+        border: `1px solid ${mode === target ? 'var(--accent)' : 'var(--border)'}`,
+        borderRadius: 7, cursor: 'pointer',
+        color: mode === target ? 'oklch(0.15 0.01 60)' : 'var(--text-3)',
+        fontSize: 13, fontFamily: 'var(--font-ui)', fontWeight: mode === target ? 600 : 400,
+        transition: 'all 0.15s',
+      }}
+    >{label}</button>
+  );
+
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ maxWidth: 760, margin: '0 auto' }}>
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '-0.01em', color: 'var(--text-1)' }}>
           Новый пост
         </h1>
-        <button
-          type="button"
-          onClick={() => setShowPreview((v) => !v)}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 7,
-            padding: '7px 14px',
-            background: showPreview ? 'var(--bg-2)' : 'transparent',
-            border: `1px solid ${showPreview ? 'var(--border-2)' : 'var(--border)'}`,
-            borderRadius: 8, cursor: 'pointer',
-            color: showPreview ? 'var(--text-1)' : 'var(--text-3)',
-            fontSize: 12, fontFamily: 'var(--font-ui)',
-            transition: 'all 0.15s',
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
-          </svg>
-          {showPreview ? 'Скрыть превью' : 'Предпросмотр'}
-        </button>
+        <div style={{ display: 'inline-flex', gap: 6 }}>
+          {tabBtn('Редактор', 'editor')}
+          {tabBtn('Превью', 'preview')}
+        </div>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: showPreview ? '1fr 360px' : '1fr',
-        gap: 20,
-        alignItems: 'flex-start',
-      }}>
-        {/* ── LEFT: form ── */}
+      {/* ── EDITOR ── */}
+      {mode === 'editor' && (
         <div style={{
           background: 'var(--bg-1)', border: '1px solid var(--border)',
           borderRadius: 'var(--card-radius)', padding: 20,
@@ -468,29 +465,57 @@ const CreatePostPage: React.FC = memo(() => {
             </div>
           </form>
         </div>
+      )}
 
-        {/* ── RIGHT: live preview ── */}
-        {showPreview && (
-          <div style={{ position: 'sticky', top: 110 }}>
-            <div style={{
-              fontSize: 11, fontWeight: 600, color: 'var(--text-3)',
-              fontFamily: 'var(--font-mono)', textTransform: 'uppercase',
-              letterSpacing: '0.07em', marginBottom: 10,
-            }}>Предпросмотр</div>
-            <PostPreview
-              title={title}
-              content={content}
-              imageObjectUrl={imageObjectUrl}
-              videoObjectUrl={videoObjectUrl}
-              githubUrl={githubUrl.trim()}
-              tags={tags}
-              displayName={profile?.display_name || ''}
-              username={profile?.username || session?.user.email?.split('@')[0] || ''}
-              avatarUrl={profile?.avatar_url ?? null}
-            />
+      {/* ── PREVIEW ── */}
+      {mode === 'preview' && (
+        <div>
+          <PostPreview
+            title={title}
+            content={content}
+            imageObjectUrl={imageObjectUrl}
+            videoObjectUrl={videoObjectUrl}
+            githubUrl={githubUrl.trim()}
+            tags={tags}
+            displayName={profile?.display_name || ''}
+            username={profile?.username || session?.user.email?.split('@')[0] || ''}
+            avatarUrl={profile?.avatar_url ?? null}
+          />
+
+          {/* Action bar shown in preview mode */}
+          <div style={{
+            display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16,
+          }}>
+            <button type="button" onClick={() => navigate(-1)}
+              style={{
+                background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8,
+                padding: '9px 18px', fontSize: 13, fontFamily: 'var(--font-ui)',
+                color: 'var(--text-1)', cursor: 'pointer',
+              }}>
+              Отмена
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); if (!title.trim() || createPost.isPending || isOverLimit || githubUrlInvalid) return; setErrorMsg(null); createPost.mutate(); }}
+              disabled={!canSubmit}
+              style={{
+                background: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 8,
+                padding: '9px 20px', fontSize: 13, fontFamily: 'var(--font-ui)', fontWeight: 600,
+                color: 'oklch(0.15 0.01 60)', cursor: canSubmit ? 'pointer' : 'not-allowed',
+                opacity: canSubmit ? 1 : 0.5,
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+              {createPost.isPending ? 'Публикация…' : 'Опубликовать'}
+            </button>
           </div>
-        )}
-      </div>
+          {errorMsg && (
+            <div style={{ color: 'var(--error)', fontSize: 12, fontFamily: 'var(--font-mono)', marginTop: 8, textAlign: 'right' }}>{errorMsg}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 });
