@@ -213,6 +213,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
 
   return (
     <article
+      onClick={() => { if (!isDetail) navigate(`/post/${post.id}`); }}
       style={{
         background: 'var(--bg-1)',
         border: '1px solid var(--border)',
@@ -220,13 +221,14 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
         padding: 18,
         display: 'flex', flexDirection: 'column', gap: 12,
         transition: 'border-color 0.15s',
+        cursor: isDetail ? 'default' : 'pointer',
       }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)'; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
     >
       {/* Author row */}
       <header style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        <Link to={`/profile/${profile?.username}`} style={{ flexShrink: 0, textDecoration: 'none' }}>
+        <Link to={`/profile/${profile?.username}`} onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, textDecoration: 'none' }}>
           {profile?.avatar_url ? (
             <img
               src={profile.avatar_url}
@@ -244,7 +246,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
         </Link>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 13 }}>
-            <Link to={`/profile/${profile?.username}`} style={{ fontWeight: 600, color: 'var(--text-1)', textDecoration: 'none' }}>
+            <Link to={`/profile/${profile?.username}`} onClick={(e) => e.stopPropagation()} style={{ fontWeight: 600, color: 'var(--text-1)', textDecoration: 'none' }}>
               {profile?.display_name || profile?.username}
             </Link>
             <span style={{ color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
@@ -258,7 +260,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
       </header>
 
       {/* Title */}
-      <Link to={`/post/${post.id}`} style={{ textDecoration: 'none' }}>
+      <Link to={`/post/${post.id}`} onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'none' }}>
         <h2
           style={{
             margin: 0,
@@ -311,7 +313,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
       )}
 
       {showVideo && (
-        <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
           <video
             src={post.video_url!}
             controls
@@ -367,6 +369,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
 
         <Link
           to={`/post/${post.id}`}
+          onClick={(e) => e.stopPropagation()}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
             padding: '5px 8px', borderRadius: 5,
