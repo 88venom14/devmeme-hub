@@ -17,16 +17,10 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const TwitchIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="#9146FF" aria-hidden="true">
-    <path d="M2.149 0L.537 4.119v16.836h5.731V24h3.224l3.045-3.045h4.657L23.463 14.7V0H2.149zm19.164 13.612l-3.582 3.582h-5.731l-3.045 3.045v-3.045H4.119V1.612h17.194v12zM18.358 5.731h-1.971v5.731h1.971V5.731zm-5.731 0h-1.971v5.731h1.971V5.731z" />
-  </svg>
-);
-
 const AUTH_WORKER_URL = import.meta.env.VITE_AUTH_WORKER_URL as string | undefined;
 
 type Mode = 'signin' | 'signup';
-type Provider = 'github' | 'google' | 'twitch';
+type Provider = 'github' | 'google';
 
 const OAuthBtn = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
   <button
@@ -56,7 +50,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   google_no_code: 'Google не вернул код авторизации.',
   google_token_failed: 'Не удалось получить токен Google.',
   google_no_email: 'Google аккаунт не имеет подтверждённого email.',
-  supabase_link_failed: 'Ошибка сервера авторизации — попробуйте позже.',
+supabase_link_failed: 'Ошибка сервера авторизации — попробуйте позже.',
 };
 
 const LoginPage: React.FC = () => {
@@ -301,9 +295,7 @@ const LoginPage: React.FC = () => {
           <OAuthBtn onClick={() => handleOAuth('google')}>
             <GoogleIcon /><span>Войти через Google</span>
           </OAuthBtn>
-          <OAuthBtn onClick={() => handleOAuth('twitch')}>
-            <TwitchIcon /><span>Войти через Twitch</span>
-          </OAuthBtn>
+
         </div>
 
         <div style={{ marginTop: 20, textAlign: 'center', fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>
