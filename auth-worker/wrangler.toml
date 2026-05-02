@@ -10,5 +10,7 @@ SUPABASE_URL = "https://noozggHctswdfnicmcnd.supabase.co"
 # Secrets — set with:
 #   npx wrangler secret put GITHUB_CLIENT_ID
 #   npx wrangler secret put GITHUB_CLIENT_SECRET
+#   npx wrangler secret put GOOGLE_CLIENT_ID
+#   npx wrangler secret put GOOGLE_CLIENT_SECRET
 #   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 #   npx wrangler secret put STATE_SECRET

@@ -1,6 +1,8 @@
 interface Env {
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
   APP_URL: string;
@@ -40,6 +42,52 @@ function errorRedirect(appUrl: string, code: string): Response {
   return Response.redirect(`${appUrl}/login?auth_error=${code}`, 302);
 }
 
+async function supabaseUpsertUser(
+  supabaseUrl: string,
+  serviceKey: string,
+  email: string,
+  userMeta: Record<string, string>,
+  appUrl: string,
+): Promise<Response | null> {
+  const headers = {
+    Authorization: `Bearer ${serviceKey}`,
+    apikey: serviceKey,
+    'Content-Type': 'application/json',
+  };
+
+  const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      type: 'magiclink',
+      email,
+      options: { redirect_to: `${appUrl}/`, data: userMeta },
+    }),
+  });
+
+  const linkData = await linkRes.json() as {
+    action_link?: string;
+    user?: { id: string };
+    error?: string;
+    msg?: string;
+  };
+
+  if (!linkData.action_link) {
+    console.error('generate_link failed:', JSON.stringify(linkData));
+    return null;
+  }
+
+  if (linkData.user?.id) {
+    await fetch(`${supabaseUrl}/auth/v1/admin/users/${linkData.user.id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ user_metadata: userMeta }),
+    });
+  }
+
+  return Response.redirect(linkData.action_link, 302);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -48,37 +96,26 @@ export default {
       return new Response(null, { headers: CORS_HEADERS });
     }
 
-    // Step 1: redirect to GitHub
+    // ── GitHub ──────────────────────────────────────────────────────────────
+
     if (url.pathname === '/auth/github') {
       const nonce = crypto.randomUUID();
       const sig = await signState(env.STATE_SECRET, nonce);
-      const state = `${nonce}.${sig}`;
-
       const params = new URLSearchParams({
         client_id: env.GITHUB_CLIENT_ID,
         redirect_uri: `${url.origin}/auth/github/callback`,
         scope: 'user:email read:user',
-        state,
+        state: `${nonce}.${sig}`,
       });
-
-      return Response.redirect(
-        `https://github.com/login/oauth/authorize?${params}`,
-        302,
-      );
+      return Response.redirect(`https://github.com/login/oauth/authorize?${params}`, 302);
     }
 
-    // Step 2: GitHub callback
     if (url.pathname === '/auth/github/callback') {
       const code = url.searchParams.get('code');
       const state = url.searchParams.get('state') ?? '';
-
       if (!code) return errorRedirect(env.APP_URL, 'github_no_code');
+      if (!await verifyState(env.STATE_SECRET, state)) return errorRedirect(env.APP_URL, 'invalid_state');
 
-      // Verify CSRF state
-      const valid = await verifyState(env.STATE_SECRET, state);
-      if (!valid) return errorRedirect(env.APP_URL, 'invalid_state');
-
-      // Exchange code for GitHub access token
       const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
         method: 'POST',
         headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
@@ -89,57 +126,22 @@ export default {
           redirect_uri: `${url.origin}/auth/github/callback`,
         }),
       });
-
-      const tokenData = await tokenRes.json() as { access_token?: string; error?: string };
+      const tokenData = await tokenRes.json() as { access_token?: string };
       if (!tokenData.access_token) return errorRedirect(env.APP_URL, 'github_token_failed');
 
-      const ghToken = tokenData.access_token;
-
-      // Get GitHub user profile
       const [userRes, emailsRes] = await Promise.all([
         fetch('https://api.github.com/user', {
-          headers: {
-            Authorization: `Bearer ${ghToken}`,
-            'User-Agent': 'devmeme-auth-worker',
-            Accept: 'application/vnd.github.v3+json',
-          },
+          headers: { Authorization: `Bearer ${tokenData.access_token}`, 'User-Agent': 'devmeme-auth-worker', Accept: 'application/vnd.github.v3+json' },
         }),
         fetch('https://api.github.com/user/emails', {
-          headers: {
-            Authorization: `Bearer ${ghToken}`,
-            'User-Agent': 'devmeme-auth-worker',
-            Accept: 'application/vnd.github.v3+json',
-          },
+          headers: { Authorization: `Bearer ${tokenData.access_token}`, 'User-Agent': 'devmeme-auth-worker', Accept: 'application/vnd.github.v3+json' },
         }),
       ]);
 
-      const ghUser = await userRes.json() as {
-        id: number;
-        login: string;
-        name: string | null;
-        email: string | null;
-        avatar_url: string;
-        bio: string | null;
-      };
-
-      const emails = await emailsRes.json() as Array<{
-        email: string;
-        primary: boolean;
-        verified: boolean;
-      }>;
-
-      const primaryEmail =
-        ghUser.email ??
-        emails.find(e => e.primary && e.verified)?.email ??
-        emails.find(e => e.verified)?.email;
-
-      if (!primaryEmail) return errorRedirect(env.APP_URL, 'github_no_email');
-
-      const supabaseHeaders = {
-        Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-        'Content-Type': 'application/json',
-      };
+      const ghUser = await userRes.json() as { id: number; login: string; name: string | null; email: string | null; avatar_url: string };
+      const emails = await emailsRes.json() as Array<{ email: string; primary: boolean; verified: boolean }>;
+      const email = ghUser.email ?? emails.find(e => e.primary && e.verified)?.email ?? emails.find(e => e.verified)?.email;
+      if (!email) return errorRedirect(env.APP_URL, 'github_no_email');
 
       const userMeta = {
         provider: 'github',
@@ -151,43 +153,65 @@ export default {
         display_name: ghUser.name ?? ghUser.login,
       };
 
-      // Generate magic link via Supabase Admin API.
-      // This creates the user if they don't exist yet (no email sent).
-      const linkRes = await fetch(`${env.SUPABASE_URL}/auth/v1/admin/generate_link`, {
+      const redirect = await supabaseUpsertUser(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, email, userMeta, env.APP_URL);
+      return redirect ?? errorRedirect(env.APP_URL, 'supabase_link_failed');
+    }
+
+    // ── Google ──────────────────────────────────────────────────────────────
+
+    if (url.pathname === '/auth/google') {
+      const nonce = crypto.randomUUID();
+      const sig = await signState(env.STATE_SECRET, nonce);
+      const params = new URLSearchParams({
+        client_id: env.GOOGLE_CLIENT_ID,
+        redirect_uri: `${url.origin}/auth/google/callback`,
+        response_type: 'code',
+        scope: 'openid email profile',
+        access_type: 'offline',
+        state: `${nonce}.${sig}`,
+      });
+      return Response.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`, 302);
+    }
+
+    if (url.pathname === '/auth/google/callback') {
+      const code = url.searchParams.get('code');
+      const state = url.searchParams.get('state') ?? '';
+      if (!code) return errorRedirect(env.APP_URL, 'google_no_code');
+      if (!await verifyState(env.STATE_SECRET, state)) return errorRedirect(env.APP_URL, 'invalid_state');
+
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
-        headers: supabaseHeaders,
-        body: JSON.stringify({
-          type: 'magiclink',
-          email: primaryEmail,
-          options: {
-            redirect_to: `${env.APP_URL}/`,
-            data: userMeta,
-          },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: env.GOOGLE_CLIENT_ID,
+          client_secret: env.GOOGLE_CLIENT_SECRET,
+          redirect_uri: `${url.origin}/auth/google/callback`,
+          grant_type: 'authorization_code',
         }),
       });
+      const tokenData = await tokenRes.json() as { access_token?: string; error?: string };
+      if (!tokenData.access_token) return errorRedirect(env.APP_URL, 'google_token_failed');
 
-      const linkData = await linkRes.json() as {
-        action_link?: string;
-        user?: { id: string };
-        error?: string;
-        msg?: string;
+      const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      const gUser = await userRes.json() as { sub: string; email: string; name: string; picture: string; email_verified: boolean };
+      if (!gUser.email || !gUser.email_verified) return errorRedirect(env.APP_URL, 'google_no_email');
+
+      const username = gUser.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
+      const userMeta = {
+        provider: 'google',
+        google_id: gUser.sub,
+        user_name: username,
+        full_name: gUser.name,
+        avatar_url: gUser.picture,
+        username,
+        display_name: gUser.name,
       };
 
-      if (!linkData.action_link) {
-        console.error('generate_link failed:', JSON.stringify(linkData));
-        return errorRedirect(env.APP_URL, 'supabase_link_failed');
-      }
-
-      // Update user metadata so GitHub info is always fresh
-      if (linkData.user?.id) {
-        await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${linkData.user.id}`, {
-          method: 'PUT',
-          headers: supabaseHeaders,
-          body: JSON.stringify({ user_metadata: userMeta }),
-        });
-      }
-
-      return Response.redirect(linkData.action_link, 302);
+      const redirect = await supabaseUpsertUser(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, gUser.email, userMeta, env.APP_URL);
+      return redirect ?? errorRedirect(env.APP_URL, 'supabase_link_failed');
     }
 
     return new Response('DevMeme Auth Worker', { status: 200, headers: CORS_HEADERS });

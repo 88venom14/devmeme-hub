@@ -53,6 +53,9 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   invalid_state: 'Ошибка безопасности — попробуйте ещё раз.',
   github_token_failed: 'Не удалось получить токен GitHub.',
   github_no_email: 'GitHub аккаунт не имеет публичного email. Добавьте email в настройках GitHub.',
+  google_no_code: 'Google не вернул код авторизации.',
+  google_token_failed: 'Не удалось получить токен Google.',
+  google_no_email: 'Google аккаунт не имеет подтверждённого email.',
   supabase_link_failed: 'Ошибка сервера авторизации — попробуйте позже.',
 };
 
@@ -74,12 +77,12 @@ const LoginPage: React.FC = () => {
   const handleOAuth = async (provider: Provider) => {
     setMessage(null);
 
-    if (provider === 'github') {
+    if (provider === 'github' || provider === 'google') {
       if (!AUTH_WORKER_URL) {
         setMessage({ kind: 'error', text: 'VITE_AUTH_WORKER_URL не задан. Задеплойте auth-worker и добавьте переменную.' });
         return;
       }
-      window.location.href = `${AUTH_WORKER_URL}/auth/github`;
+      window.location.href = `${AUTH_WORKER_URL}/auth/${provider}`;
       return;
     }
 
