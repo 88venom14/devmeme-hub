@@ -123,6 +123,7 @@ const LoginPage: React.FC = () => {
         const { data, error } = await supabase.auth.signUp({
           email, password,
           options: {
+            emailRedirectTo: window.location.origin + '/',
             data: {
               username: username.trim() || email.split('@')[0],
               display_name: username.trim() || email.split('@')[0],
@@ -131,7 +132,7 @@ const LoginPage: React.FC = () => {
         });
         if (error) throw error;
         if (data.user && !data.session) {
-          setMessage({ kind: 'info', text: 'Проверьте email и подтвердите адрес перед входом.' });
+          setMessage({ kind: 'info', text: '📨 Письмо отправлено на ' + email + '. Перейдите по ссылке в письме для подтверждения.' });
         }
       }
     } catch (err) {
