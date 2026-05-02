@@ -1,7 +1,7 @@
 :root {
   /* New oklch color system */
   --accent-h: 30;
-  --accent: oklch(0.68 0.16 var(--accent-h));
+  --accent: oklch(0.6724 0.1308 var(--accent-h));
   --bg-0: oklch(0.155 0.008 60);
   --bg-1: oklch(0.185 0.01 60);
   --bg-2: oklch(0.22 0.01 60);

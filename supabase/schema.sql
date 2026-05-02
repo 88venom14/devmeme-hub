@@ -158,24 +158,44 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
 
--- Auto-create profile on signup
+-- Auto-create profile after email confirmation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = ''
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, username, display_name, avatar_url)
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
-    COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
-    NEW.raw_user_meta_data->>'avatar_url'
-  );
+  -- INSERT: OAuth users confirmed immediately
+  IF TG_OP = 'INSERT' AND NEW.email_confirmed_at IS NOT NULL THEN
+    INSERT INTO public.profiles (id, username, display_name, avatar_url)
+    VALUES (
+      NEW.id,
+      COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+      COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
+      NEW.raw_user_meta_data->>'avatar_url'
+    )
+    ON CONFLICT (id) DO NOTHING;
+  -- UPDATE: email/password user confirmed their email
+  ELSIF TG_OP = 'UPDATE'
+    AND OLD.email_confirmed_at IS NULL
+    AND NEW.email_confirmed_at IS NOT NULL THEN
+    INSERT INTO public.profiles (id, username, display_name, avatar_url)
+    VALUES (
+      NEW.id,
+      COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+      COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
+      NEW.raw_user_meta_data->>'avatar_url'
+    )
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
   RETURN NEW;
 END;
 $$;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+CREATE TRIGGER on_auth_user_email_confirmed
+  AFTER UPDATE ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
