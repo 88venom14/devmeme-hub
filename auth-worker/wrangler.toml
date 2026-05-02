@@ -4,7 +4,7 @@ compatibility_date = "2025-01-01"
 
 [vars]
 # Public — fill these in or set via `wrangler deploy --var`
-APP_URL = "https://88venom14.github.io/devmeme-hub"
+APP_URL = "https://fluttershy.horsefucker.ru"
 SUPABASE_URL = "https://noozggHctswdfnicmcnd.supabase.co"
 
 # Secrets — set with:
