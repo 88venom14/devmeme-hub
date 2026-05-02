@@ -1,0 +1,14 @@
+name = "devmeme-auth"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Public — fill these in or set via `wrangler deploy --var`
+APP_URL = "https://88venom14.github.io/devmeme-hub"
+SUPABASE_URL = "https://noozggHctswdfnicmcnd.supabase.co"
+
+# Secrets — set with:
+#   npx wrangler secret put GITHUB_CLIENT_ID
+#   npx wrangler secret put GITHUB_CLIENT_SECRET
+#   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+#   npx wrangler secret put STATE_SECRET

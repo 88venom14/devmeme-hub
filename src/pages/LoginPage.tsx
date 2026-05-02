@@ -23,6 +23,8 @@ const TwitchIcon = () => (
   </svg>
 );
 
+const AUTH_WORKER_URL = import.meta.env.VITE_AUTH_WORKER_URL as string | undefined;
+
 type Mode = 'signin' | 'signup';
 type Provider = 'github' | 'google' | 'twitch';
 
@@ -46,16 +48,41 @@ const OAuthBtn = ({ onClick, children }: { onClick: () => void; children: React.
   </button>
 );
 
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  github_no_code: 'GitHub не вернул код авторизации.',
+  invalid_state: 'Ошибка безопасности — попробуйте ещё раз.',
+  github_token_failed: 'Не удалось получить токен GitHub.',
+  github_no_email: 'GitHub аккаунт не имеет публичного email. Добавьте email в настройках GitHub.',
+  supabase_link_failed: 'Ошибка сервера авторизации — попробуйте позже.',
+};
+
 const LoginPage: React.FC = () => {
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ kind: 'error' | 'info'; text: string } | null>(() => {
+    const err = new URLSearchParams(window.location.search).get('auth_error');
+    if (err) {
+      window.history.replaceState({}, '', window.location.pathname);
+      return { kind: 'error', text: AUTH_ERROR_MESSAGES[err] ?? `Ошибка входа: ${err}` };
+    }
+    return null;
+  });
 
   const handleOAuth = async (provider: Provider) => {
     setMessage(null);
+
+    if (provider === 'github') {
+      if (!AUTH_WORKER_URL) {
+        setMessage({ kind: 'error', text: 'VITE_AUTH_WORKER_URL не задан. Задеплойте auth-worker и добавьте переменную.' });
+        return;
+      }
+      window.location.href = `${AUTH_WORKER_URL}/auth/github`;
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: window.location.origin + '/', scopes: 'user:email read:user' },
