@@ -10,6 +10,7 @@ import { useSessionContext } from '../../context/SessionContext';
 import { useInvalidatePosts } from '../../hooks/useInvalidatePosts';
 import MarkdownContent from '../MarkdownContent';
 import Avatar from '../Avatar';
+import VideoPlayer from '../ui/VideoPlayer';
 
 interface PostCardProps {
   post: PostWithMeta;
@@ -311,12 +312,8 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
       )}
 
       {showVideo && (
-        <div onClick={(e) => e.stopPropagation()} style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
-          <video
-            src={post.video_url!}
-            controls
-            style={{ width: '100%', maxHeight: isDetail ? '480px' : '280px', display: 'block', backgroundColor: '#000' }}
-          />
+        <div onClick={(e) => e.stopPropagation()}>
+          <VideoPlayer src={post.video_url!} maxHeight={isDetail ? 480 : 280} />
         </div>
       )}
 
