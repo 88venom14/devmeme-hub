@@ -26,10 +26,7 @@ export default defineConfig({
       output: {
         entryFileNames: 'assets/index.js',
         chunkFileNames: 'assets/[name].js',
-        assetFileNames: (info) => {
-          if (info.name?.endsWith('.css')) return 'assets/index.css';
-          return 'assets/[name][extname]';
-        },
+        assetFileNames: 'assets/[name][extname]',
       },
     },
   },

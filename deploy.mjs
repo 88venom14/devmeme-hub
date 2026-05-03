@@ -1,7 +1,7 @@
 // Run with: node deploy.mjs
 // Builds the project, copies production files to root for gh-pages, commits+pushes, then restores dev index.html.
 import { execSync } from 'child_process';
-import { readFileSync, writeFileSync, cpSync, rmSync } from 'fs';
+import { readFileSync, writeFileSync, cpSync, rmSync, existsSync } from 'fs';
 
 const devHtml = readFileSync('index.html', 'utf8');
 
@@ -12,6 +12,12 @@ try {
   console.log('Copying assets to root...');
   rmSync('assets', { recursive: true, force: true });
   cpSync('dist/assets', 'assets', { recursive: true });
+
+  // Vite's chunk-dep map references assets/index2.css for a CSS chunk
+  // that doesn't actually get emitted (highlight.js side-effect import is
+  // empty after our overrides). Write a stub so the preload succeeds.
+  if (!existsSync('assets/index2.css')) writeFileSync('assets/index2.css', '');
+  if (!existsSync('dist/assets/index2.css')) writeFileSync('dist/assets/index2.css', '');
 
   console.log('Writing production index.html + 404.html...');
   const prodHtml = readFileSync('dist/index.html', 'utf8');
