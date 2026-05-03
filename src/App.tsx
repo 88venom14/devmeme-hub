@@ -20,6 +20,7 @@ const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const FollowingPage = React.lazy(() => import('./pages/FollowingPage'));
 const TrendingPage = React.lazy(() => import('./pages/TrendingPage'));
 const TagPage = React.lazy(() => import('./pages/TagPage'));
+const ChatPage = React.lazy(() => import('./pages/ChatPage'));
 
 import AppShell from './components/layout/AppShell';
 
@@ -125,6 +126,10 @@ const App: React.FC = () => {
               <Route
                 path="/following"
                 element={session ? <FollowingPage /> : <Navigate to="/login" replace />}
+              />
+              <Route
+                path="/chat"
+                element={session ? <ChatPage /> : <Navigate to="/login" replace />}
               />
             </Route>
 

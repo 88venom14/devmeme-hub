@@ -7,6 +7,7 @@ import { useTopTags } from '../../hooks/useTopTags';
 import { useMyProfile } from '../../hooks/useMyProfile';
 import { useSessionContext } from '../../context/SessionContext';
 import Avatar from '../Avatar';
+import ChatWidget from '../chat/ChatWidget';
 
 const StableOutlet = memo(() => <Outlet />);
 StableOutlet.displayName = 'StableOutlet';
@@ -112,6 +113,12 @@ const AppShell: React.FC<AppShellProps> = () => {
               Профиль
             </Link>
           )}
+          {session && (
+            <Link to="/chat" className={`sub-nav-link${isActive('/chat') ? ' active' : ''}`}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+              Чат
+            </Link>
+          )}
         </nav>
       </div>
 
@@ -123,6 +130,7 @@ const AppShell: React.FC<AppShellProps> = () => {
         <aside className="right-sidebar" style={{ top: navHidden ? 16 : navHeight + 16 }}>
           {session && myProfile && <UserCard myProfile={myProfile} location={location} />}
           <BrowseTags />
+          <ChatWidget />
         </aside>
       </main>
     </div>
