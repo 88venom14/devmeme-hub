@@ -1,0 +1,6 @@
+name = "devmeme-chat"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Secret — set with:
+#   npx wrangler secret put OPENROUTER_API_KEY
