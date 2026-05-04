@@ -110,7 +110,15 @@ export default {
       });
     }
 
-    return new Response(JSON.stringify({ reply: reply.trim() }), {
+    // Strip <think>…</think> reasoning the model sometimes leaks.
+    // Handles closed blocks, and unclosed openings/closings at start/end.
+    const cleaned = reply
+      .replace(/<think>[\s\S]*?<\/think>/gi, '')
+      .replace(/^[\s\S]*?<\/think>/i, '')
+      .replace(/<think>[\s\S]*$/i, '')
+      .trim();
+
+    return new Response(JSON.stringify({ reply: cleaned || reply.trim() }), {
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     });
   },
