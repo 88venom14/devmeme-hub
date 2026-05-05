@@ -29,7 +29,12 @@ const AppShell: React.FC<AppShellProps> = () => {
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
   useEffect(() => {
-    if (navRef.current) setNavHeight(navRef.current.offsetHeight);
+    const el = navRef.current;
+    if (!el) return;
+    setNavHeight(el.offsetHeight);
+    const ro = new ResizeObserver(() => setNavHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   useEffect(() => {
@@ -204,7 +209,13 @@ const AppShell: React.FC<AppShellProps> = () => {
           <StableOutlet />
         </section>
 
-        <aside className="right-sidebar" style={{ top: navHidden ? 16 : navHeight + 16 }}>
+        <aside
+          className="right-sidebar"
+          style={{
+            top: navHidden ? 16 : navHeight + 16,
+            maxHeight: `calc(100vh - ${navHidden ? 32 : navHeight + 32}px)`,
+          }}
+        >
           {session && myProfile && <UserCard myProfile={myProfile} location={location} />}
           <BrowseTags />
           {!location.pathname.startsWith('/chat') && <ChatWidget />}

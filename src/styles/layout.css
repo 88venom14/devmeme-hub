@@ -272,9 +272,10 @@
 }
 
 /* Prevent any element from forcing a horizontal scroll on the page */
+/* overflow-x: clip clips without creating a new scroll container — required for position:sticky to work */
 html, body, #root {
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 img, video {
