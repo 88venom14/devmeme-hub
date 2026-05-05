@@ -21,8 +21,12 @@ const AppShell: React.FC<AppShellProps> = () => {
   const location = useLocation();
   const [navHidden, setNavHidden] = useState(false);
   const [navHeight, setNavHeight] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
   const navRef = useRef<HTMLDivElement>(null);
+
+  // Close mobile menu on route change
+  useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
   useEffect(() => {
     if (navRef.current) setNavHeight(navRef.current.offsetHeight);
@@ -69,14 +73,19 @@ const AppShell: React.FC<AppShellProps> = () => {
               flexShrink: 0,
             }}
           >
-            <div style={{
-              width: 26, height: 26,
-              fontSize: 14, fontWeight: 800,
-            }}
+            <svg
+              width="26" height="26" viewBox="0 0 24 24"
+              style={{ flexShrink: 0, display: 'block' }}
+              aria-hidden="true"
             >
-              <svg><path clip-rule="evenodd" d="M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z" fill="#D97757" fill-rule="evenodd"></path></svg>
-            </div>
-            <span>devMeme</span>
+              <path
+                clipRule="evenodd"
+                d="M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z"
+                fill="#D97757"
+                fillRule="evenodd"
+              />
+            </svg>
+            <span className="brand-text">devMeme</span>
           </Link>
 
           <div style={{ flex: 1, maxWidth: 480, margin: '0 auto' }}>
@@ -94,6 +103,17 @@ const AppShell: React.FC<AppShellProps> = () => {
             ) : (
               <Link to="/login" className="btn btn-primary btn-sm">Войти</Link>
             )}
+            <button
+              className="nav-burger"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Открыть меню"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
           </div>
         </header>
 
@@ -122,6 +142,63 @@ const AppShell: React.FC<AppShellProps> = () => {
         </nav>
       </div>
 
+      {/* Mobile slide-out menu */}
+      <div
+        className={`mobile-menu-overlay${menuOpen ? ' open' : ''}`}
+        onClick={() => setMenuOpen(false)}
+      />
+      <nav className={`mobile-menu${menuOpen ? ' open' : ''}`}>
+        <div className="mobile-menu-header">
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)' }}>Меню</span>
+          <button
+            onClick={() => setMenuOpen(false)}
+            aria-label="Закрыть"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--text-2)', fontSize: 22, lineHeight: 1, padding: 4,
+            }}
+          >×</button>
+        </div>
+        <Link to="/feed" className={`sub-nav-link${location.pathname === '/feed' ? ' active' : ''}`}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="6" rx="1.5" /><rect x="3" y="14" width="18" height="6" rx="1.5" /></svg>
+          Лента
+        </Link>
+        <Link to="/post/new" className={`sub-nav-link${isActive('/post/new') ? ' active' : ''}`}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+          Новый пост
+        </Link>
+        <Link to="/trending" className={`sub-nav-link${isActive('/trending') ? ' active' : ''}`}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="m3 17 6-6 4 4 8-8" /><path d="M14 7h7v7" /></svg>
+          Популярное
+        </Link>
+        {session && myProfile && (
+          <Link to={`/profile/${myProfile.username}`} className={`sub-nav-link${isActive('/profile') ? ' active' : ''}`}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-7 8-7s8 3 8 7" /></svg>
+            Профиль
+          </Link>
+        )}
+        {session && (
+          <>
+            <Link to="/following" className={`sub-nav-link${isActive('/following') ? ' active' : ''}`}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-8-5-8-11a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-8 11-8 11h-2z" /></svg>
+              Подписки
+            </Link>
+            <Link to="/saved" className={`sub-nav-link${isActive('/saved') ? ' active' : ''}`}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12v18l-6-4-6 4z" /></svg>
+              Сохранённое
+            </Link>
+            <Link to="/chat" className={`sub-nav-link${isActive('/chat') ? ' active' : ''}`}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+              Чат
+            </Link>
+            <Link to="/settings" className={`sub-nav-link${isActive('/settings') ? ' active' : ''}`}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+              Настройки
+            </Link>
+          </>
+        )}
+      </nav>
+
       <main className="main-layout">
         <section className="feed-column">
           <StableOutlet />
@@ -130,7 +207,7 @@ const AppShell: React.FC<AppShellProps> = () => {
         <aside className="right-sidebar" style={{ top: navHidden ? 16 : navHeight + 16 }}>
           {session && myProfile && <UserCard myProfile={myProfile} location={location} />}
           <BrowseTags />
-          <ChatWidget />
+          {!location.pathname.startsWith('/chat') && <ChatWidget />}
         </aside>
       </main>
     </div>

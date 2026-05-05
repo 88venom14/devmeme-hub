@@ -176,6 +176,22 @@ code, pre {
 .md a { color: var(--accent); text-decoration: none; border-bottom: 1px solid currentColor; }
 .md strong { color: var(--text-1); font-weight: 600; }
 
+/* Chat message bubble: tighter markdown spacing inside the AI reply */
+.chat-bubble-ai p { margin: 0 0 6px; }
+.chat-bubble-ai p:last-child { margin-bottom: 0; }
+.chat-bubble-ai h1, .chat-bubble-ai h2, .chat-bubble-ai h3 { margin: 10px 0 4px; line-height: 1.25; }
+.chat-bubble-ai h1 { font-size: 16px; }
+.chat-bubble-ai h2 { font-size: 15px; }
+.chat-bubble-ai h3 { font-size: 14px; }
+.chat-bubble-ai ul, .chat-bubble-ai ol { margin: 4px 0 6px; padding-left: 18px; }
+.chat-bubble-ai li { margin: 2px 0; }
+.chat-bubble-ai pre { margin: 6px 0; border-radius: 6px; overflow: hidden; }
+.chat-bubble-ai pre code.hljs { padding: 10px 12px !important; font-size: 12px; }
+.chat-bubble-ai code:not(.hljs) { background: var(--bg-3); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; color: var(--accent); }
+.chat-bubble-ai blockquote { margin: 4px 0; padding-left: 10px; border-left: 2px solid var(--border-2); color: var(--text-2); }
+.chat-bubble-ai a { color: var(--accent); border-bottom: 1px solid currentColor; }
+.chat-bubble-ai > *:first-child { margin-top: 0; }
+
 /* highlight.js atom-one-dark theme */
 pre code.hljs { display: block; overflow-x: auto; padding: 1em; }
 code.hljs { padding: 3px 5px; }

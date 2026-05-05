@@ -37,6 +37,39 @@ interface ChatTurn {
   content: string;
 }
 
+// Strip reasoning leaks, stray leading fragments, and unwanted leading ellipses.
+function sanitizeReply(raw: string): string {
+  let s = raw;
+
+  // 1. Closed <think>…</think> blocks anywhere.
+  s = s.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  // 2. Unclosed leading reasoning ending at first </think>.
+  s = s.replace(/^[\s\S]*?<\/think>/i, '');
+  // 3. Unclosed trailing <think>… at end.
+  s = s.replace(/<think>[\s\S]*$/i, '');
+  s = s.trim();
+
+  // 4. Drop short orphan first lines: < 4 chars or no letters followed by space/letter,
+  // which catches stray fragments like "ит", "класс" the reasoning sometimes leaves.
+  const lines = s.split(/\r?\n/);
+  if (lines.length > 1) {
+    const first = lines[0].trim();
+    const looksLikeFragment =
+      first.length > 0 &&
+      first.length < 12 &&
+      !/[.!?…»"”)]\s*$/.test(first) &&
+      !/^[#>*\-\d`[]/.test(first);
+    if (looksLikeFragment) {
+      s = lines.slice(1).join('\n').trim();
+    }
+  }
+
+  // 5. Strip a single leading run of dots/ellipsis ("...", "…") plus any whitespace.
+  s = s.replace(/^[.…\s]+/, '');
+
+  return s.trim();
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') {
@@ -110,13 +143,7 @@ export default {
       });
     }
 
-    // Strip <think>…</think> reasoning the model sometimes leaks.
-    // Handles closed blocks, and unclosed openings/closings at start/end.
-    const cleaned = reply
-      .replace(/<think>[\s\S]*?<\/think>/gi, '')
-      .replace(/^[\s\S]*?<\/think>/i, '')
-      .replace(/<think>[\s\S]*$/i, '')
-      .trim();
+    const cleaned = sanitizeReply(reply);
 
     return new Response(JSON.stringify({ reply: cleaned || reply.trim() }), {
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
