@@ -140,6 +140,20 @@ func TestIntegrationAuthAndPostFlow(t *testing.T) {
 		t.Errorf("clear bio status = %d bio = %v (want null)", status, prof["bio"])
 	}
 
+	// Settings: defaults, update, and persistence.
+	if status, st := doJSON(t, http.MethodGet, srv.URL+"/api/settings", token, nil); status != http.StatusOK || st["notify_likes"] != true || st["two_factor"] != false {
+		t.Errorf("get settings status = %d defaults = %v", status, st)
+	}
+	if status, st := doJSON(t, http.MethodPut, srv.URL+"/api/settings", token, map[string]any{"two_factor": true}); status != http.StatusOK || st["two_factor"] != true {
+		t.Errorf("update settings status = %d two_factor = %v", status, st["two_factor"])
+	}
+	if status, st := doJSON(t, http.MethodGet, srv.URL+"/api/settings", token, nil); status != http.StatusOK || st["two_factor"] != true {
+		t.Errorf("settings did not persist: status = %d two_factor = %v", status, st["two_factor"])
+	}
+	if status, _ := doJSON(t, http.MethodPut, srv.URL+"/api/settings", token, map[string]any{"bogus": true}); status != http.StatusBadRequest {
+		t.Errorf("unknown setting status = %d, want 400", status)
+	}
+
 	// Delete the post.
 	req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/posts/"+postID, nil)
 	req.Header.Set("Authorization", "Bearer "+token)

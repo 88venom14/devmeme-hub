@@ -237,6 +237,26 @@ async function main() {
   const fakeUpload = await fetch(`${BASE}/api/media`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fakeForm });
   check('spoofed content-type rejected -> 400', fakeUpload.status === 400, `got ${fakeUpload.status}`);
 
+  // ── settings ───────────────────────────────────────────────────────────────
+  console.log('settings:');
+  const settingsNoAuth = await api('/api/settings');
+  check('settings without token -> 401', settingsNoAuth.status === 401, `got ${settingsNoAuth.status}`);
+  const settings = await api('/api/settings', { token });
+  check('GET settings -> 200', settings.status === 200);
+  check('settings has all 8 keys', settings.data && Object.keys(settings.data).length === 8);
+  check('default notify_likes is true', settings.data?.notify_likes === true);
+  check('default two_factor is false', settings.data?.two_factor === false);
+  const upd = await api('/api/settings', { method: 'PUT', token, body: { two_factor: true, notify_likes: false } });
+  check('PUT settings -> 200', upd.status === 200);
+  check('settings updated in response', upd.data?.two_factor === true && upd.data?.notify_likes === false);
+  check('untouched setting unchanged', upd.data?.notify_comments === true);
+  const reloaded = await api('/api/settings', { token });
+  check('settings persisted across reload', reloaded.data?.two_factor === true && reloaded.data?.notify_likes === false);
+  const badKey = await api('/api/settings', { method: 'PUT', token, body: { not_a_setting: true } });
+  check('unknown setting -> 400', badKey.status === 400, `got ${badKey.status}`);
+  const badType = await api('/api/settings', { method: 'PUT', token, body: { two_factor: 'yes' } });
+  check('non-boolean setting -> 400', badType.status === 400, `got ${badType.status}`);
+
   // ── cleanup ────────────────────────────────────────────────────────────────
   console.log('cleanup:');
   const del = await api(`/api/posts/${postId}`, { method: 'DELETE', token });

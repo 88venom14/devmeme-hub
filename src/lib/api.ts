@@ -25,6 +25,17 @@ export type AppSession = {
   profile?: Profile | null;
 };
 
+export type UserSettings = {
+  notify_likes: boolean;
+  notify_comments: boolean;
+  notify_followers: boolean;
+  email_digest: boolean;
+  push_browser: boolean;
+  profile_followers_only: boolean;
+  hide_liked: boolean;
+  two_factor: boolean;
+};
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -204,6 +215,17 @@ export const api = {
     return request<Profile>('/api/profiles/me', {
       method: 'PATCH',
       body: JSON.stringify(payload),
+    });
+  },
+
+  getSettings() {
+    return request<UserSettings>('/api/settings');
+  },
+
+  updateSettings(patch: Partial<UserSettings>) {
+    return request<UserSettings>('/api/settings', {
+      method: 'PUT',
+      body: JSON.stringify(patch),
     });
   },
 

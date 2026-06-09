@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, type UserSettings } from '../lib/api';
 import type { Profile } from '../types';
 import { uploadPostMedia } from '../lib/storage';
 import { useSessionContext } from '../context/SessionContext';
@@ -35,28 +35,39 @@ const inputStyle: React.CSSProperties = {
   fontSize: 13, fontFamily: 'var(--font-ui)', outline: 'none',
 };
 
-const ToggleRow = memo(({ label, defaultOn = false }: { label: string; defaultOn?: boolean }) => {
-  const [on, setOn] = useState(defaultOn);
+const ToggleRow = memo(({ label, checked, onChange, disabled = false }: {
+  label: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+}) => {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10,
       padding: '8px 0', borderBottom: '1px solid var(--border)',
+      opacity: disabled ? 0.6 : 1,
     }}>
       <span style={{ flex: 1, fontSize: 13, color: 'var(--text-1)' }}>{label}</span>
       <button
-        onClick={() => setOn(!on)}
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
         style={{
           width: 36, height: 20, flexShrink: 0,
-          background: on ? 'var(--accent)' : 'var(--bg-3)',
-          border: `1px solid ${on ? 'var(--accent)' : 'var(--border-2)'}`,
-          borderRadius: 999, padding: 0, cursor: 'pointer',
+          background: checked ? 'var(--accent)' : 'var(--bg-3)',
+          border: `1px solid ${checked ? 'var(--accent)' : 'var(--border-2)'}`,
+          borderRadius: 999, padding: 0,
+          cursor: disabled ? 'not-allowed' : 'pointer',
           position: 'relative', transition: 'background 0.15s',
         }}
       >
         <div style={{
-          position: 'absolute', top: 1, left: on ? 17 : 1,
+          position: 'absolute', top: 1, left: checked ? 17 : 1,
           width: 16, height: 16,
-          background: on ? 'oklch(0.15 0.01 60)' : 'var(--text-2)',
+          background: checked ? 'oklch(0.15 0.01 60)' : 'var(--text-2)',
           borderRadius: '50%', transition: 'left 0.15s',
         }} />
       </button>
@@ -181,6 +192,36 @@ const SettingsPage: React.FC = () => {
     },
     onError: (err: Error) => setStatusMsg({ kind: 'err', text: err.message }),
   });
+
+  // ── Notification & privacy settings ──
+  const settingsKey = ['settings', userId] as const;
+  const { data: settings } = useQuery({
+    queryKey: settingsKey,
+    enabled: !!userId,
+    queryFn: () => api.getSettings(),
+  });
+
+  const updateSettings = useMutation({
+    mutationFn: (patch: Partial<UserSettings>) => api.updateSettings(patch),
+    onMutate: async (patch) => {
+      await queryClient.cancelQueries({ queryKey: settingsKey });
+      const prev = queryClient.getQueryData<UserSettings>(settingsKey);
+      if (prev) queryClient.setQueryData<UserSettings>(settingsKey, { ...prev, ...patch });
+      return { prev };
+    },
+    onError: (err: Error, _patch, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(settingsKey, ctx.prev);
+      setStatusMsg({ kind: 'err', text: `Не удалось сохранить настройку: ${err.message}` });
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(settingsKey, data);
+    },
+  });
+
+  const toggleSetting = (key: keyof UserSettings) => {
+    if (!settings) return;
+    updateSettings.mutate({ [key]: !settings[key] } as Partial<UserSettings>);
+  };
 
   const handleSignOut = async () => {
     api.signOut();
@@ -395,18 +436,38 @@ const SettingsPage: React.FC = () => {
 
       {/* Notifications */}
       <SectionCard title="Уведомления">
-        <ToggleRow label="Лайки на мои посты" defaultOn />
-        <ToggleRow label="Комментарии" defaultOn />
-        <ToggleRow label="Новые подписчики" defaultOn />
-        <ToggleRow label="Email-дайджест раз в неделю" />
-        <ToggleRow label="Push-уведомления в браузере" />
+        {!settings ? (
+          <div style={{ color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12, padding: '8px 0' }}>загрузка…</div>
+        ) : (
+          ([
+            { label: 'Лайки на мои посты', key: 'notify_likes' },
+            { label: 'Комментарии', key: 'notify_comments' },
+            { label: 'Новые подписчики', key: 'notify_followers' },
+            { label: 'Email-дайджест раз в неделю', key: 'email_digest' },
+            { label: 'Push-уведомления в браузере', key: 'push_browser' },
+          ] as const).map(({ label, key }) => (
+            <ToggleRow key={key} label={label} checked={settings[key]}
+              disabled={updateSettings.isPending}
+              onChange={() => toggleSetting(key)} />
+          ))
+        )}
       </SectionCard>
 
       {/* Privacy */}
       <SectionCard title="Приватность">
-        <ToggleRow label="Профиль видят только подписчики" />
-        <ToggleRow label="Скрыть лайкнутое" />
-        <ToggleRow label="Двухфакторная аутентификация" defaultOn />
+        {!settings ? (
+          <div style={{ color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12, padding: '8px 0' }}>загрузка…</div>
+        ) : (
+          ([
+            { label: 'Профиль видят только подписчики', key: 'profile_followers_only' },
+            { label: 'Скрыть лайкнутое', key: 'hide_liked' },
+            { label: 'Двухфакторная аутентификация', key: 'two_factor' },
+          ] as const).map(({ label, key }) => (
+            <ToggleRow key={key} label={label} checked={settings[key]}
+              disabled={updateSettings.isPending}
+              onChange={() => toggleSetting(key)} />
+          ))
+        )}
       </SectionCard>
 
       {/* Danger zone */}

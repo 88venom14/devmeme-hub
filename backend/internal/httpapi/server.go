@@ -48,6 +48,8 @@ func (s *Server) Routes() http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(s.requireUser)
 			r.Get("/auth/me", s.me)
+			r.Get("/settings", s.getSettings)
+			r.Put("/settings", s.updateSettings)
 			r.Get("/profiles/me", s.myProfile)
 			r.Patch("/profiles/me", s.updateMyProfile)
 			r.Post("/posts", s.createPost)
