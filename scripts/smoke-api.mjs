@@ -289,6 +289,27 @@ async function main() {
   // reset
   await api('/api/settings', { method: 'PUT', token, body: { profile_followers_only: false } });
 
+  // ── privacy: hide_liked ───────────────────────────────────────────────────
+  console.log('privacy (hide liked):');
+  await api(`/api/posts/${postId}/star`, { method: 'POST', token }); // owner likes a post
+  const ownerLiked = await api(`/api/profiles/${me.data.user.id}/liked`, { token });
+  check('owner sees own liked list', Array.isArray(ownerLiked.data) && ownerLiked.data.some((p) => p.id === postId));
+  const likedVisible = await api(`/api/profiles/${me.data.user.id}/liked`, { token: viewerToken });
+  check('liked visible to others by default', Array.isArray(likedVisible.data) && likedVisible.data.some((p) => p.id === postId));
+  const profV1 = await api(`/api/profiles/username/${username}`, { token: viewerToken });
+  check('liked_hidden falsy by default', !profV1.data?.liked_hidden);
+
+  await api('/api/settings', { method: 'PUT', token, body: { hide_liked: true } });
+  const likedHidden = await api(`/api/profiles/${me.data.user.id}/liked`, { token: viewerToken });
+  check('liked hidden from others when on', Array.isArray(likedHidden.data) && likedHidden.data.length === 0);
+  const profV2 = await api(`/api/profiles/username/${username}`, { token: viewerToken });
+  check('liked_hidden=true for viewer when on', profV2.data?.liked_hidden === true);
+  const ownerLiked2 = await api(`/api/profiles/${me.data.user.id}/liked`, { token });
+  check('owner still sees own liked when hidden', Array.isArray(ownerLiked2.data) && ownerLiked2.data.some((p) => p.id === postId));
+  const profOwner = await api(`/api/profiles/username/${username}`, { token });
+  check('liked_hidden falsy for owner', !profOwner.data?.liked_hidden);
+  await api('/api/settings', { method: 'PUT', token, body: { hide_liked: false } });
+
   // ── cleanup ────────────────────────────────────────────────────────────────
   console.log('cleanup:');
   const del = await api(`/api/posts/${postId}`, { method: 'DELETE', token });

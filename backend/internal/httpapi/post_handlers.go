@@ -196,6 +196,35 @@ func (s *Server) listProfilePosts(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, posts)
 }
 
+func (s *Server) listProfileLikedPosts(w http.ResponseWriter, r *http.Request) {
+	profileID := chi.URLParam(r, "profileID")
+	viewer := mustUser(r).ID
+
+	visible, err := s.profileVisibleTo(r.Context(), profileID, viewer)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not list liked posts")
+		return
+	}
+	hidden, err := s.likedHiddenFor(r.Context(), profileID, viewer)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not list liked posts")
+		return
+	}
+	if !visible || hidden {
+		writeJSON(w, http.StatusOK, []Post{})
+		return
+	}
+
+	posts, err := s.queryPosts(r.Context(), postListWhereSQL(`
+		p.id IN (SELECT post_id FROM stars WHERE user_id = $2)
+	`, "p.created_at DESC"), limitParam(r), profileID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not list liked posts")
+		return
+	}
+	writeJSON(w, http.StatusOK, posts)
+}
+
 func (s *Server) listFollowingPosts(w http.ResponseWriter, r *http.Request) {
 	posts, err := s.queryPosts(r.Context(), postListWhereSQL(`
 		p.user_id IN (SELECT following_id FROM follows WHERE follower_id = $2)

@@ -95,7 +95,28 @@ func (s *Server) respondProfile(w http.ResponseWriter, r *http.Request, profile 
 		})
 		return
 	}
+	hidden, err := s.likedHiddenFor(r.Context(), profile.ID, mustUser(r).ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not load profile")
+		return
+	}
+	profile.LikedHidden = hidden
 	writeJSON(w, http.StatusOK, profile)
+}
+
+// likedHiddenFor reports whether the target's liked posts should be hidden from
+// the viewer. The owner always sees their own; others are subject to the
+// owner's hide_liked setting.
+func (s *Server) likedHiddenFor(ctx context.Context, targetID, viewerID string) (bool, error) {
+	if viewerID == targetID {
+		return false, nil
+	}
+	var hide bool
+	err := s.db.QueryRow(ctx, `
+		SELECT COALESCE((settings->>'hide_liked')::boolean, false)
+		FROM users WHERE id = $1
+	`, targetID).Scan(&hide)
+	return hide, err
 }
 
 // profileVisibleTo reports whether viewerID may see the full profile of

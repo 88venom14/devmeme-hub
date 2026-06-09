@@ -31,6 +31,9 @@ type Profile struct {
 	// IsPrivate is set on profile-view responses when the profile is
 	// followers-only and the viewer is not allowed to see its full content.
 	IsPrivate bool `json:"is_private,omitempty"`
+	// LikedHidden is set on profile-view responses when the owner hid their
+	// liked posts and the viewer is not the owner.
+	LikedHidden bool `json:"liked_hidden,omitempty"`
 }
 
 type Tag struct {

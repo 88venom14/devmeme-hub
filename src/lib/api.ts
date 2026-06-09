@@ -195,6 +195,10 @@ export const api = {
     return (await request<ApiPost[]>(`/api/profiles/${encodeURIComponent(profileId)}/posts`)).map(adaptPost);
   },
 
+  async listProfileLikedPosts(profileId: string) {
+    return (await request<ApiPost[]>(`/api/profiles/${encodeURIComponent(profileId)}/liked`)).map(adaptPost);
+  },
+
   getProfileStats(profileId: string) {
     return request<{ followers: number; following: number }>(`/api/profiles/${encodeURIComponent(profileId)}/stats`);
   },

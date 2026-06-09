@@ -14,6 +14,8 @@ export type Profile = {
   // Set by the backend when the profile is followers-only and the viewer is
   // not allowed to see its full content.
   is_private?: boolean;
+  // Set by the backend when the owner hid their liked posts from other viewers.
+  liked_hidden?: boolean;
 };
 
 export type MyProfile = {

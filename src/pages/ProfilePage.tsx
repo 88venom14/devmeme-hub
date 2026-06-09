@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Link as LinkIcon } from 'lucide-react';
@@ -41,11 +41,21 @@ const ProfilePage: React.FC = () => {
   const isOwnProfile = !!viewerId && viewerId === profileId;
 
   const isPrivate = !!profile?.is_private;
+  const [tab, setTab] = useState<'posts' | 'liked'>('posts');
+  // The liked tab is visible to the owner always, and to others unless hidden.
+  const showLikedTab = !isPrivate && (isOwnProfile || !profile?.liked_hidden);
+  const activeTab = showLikedTab ? tab : 'posts';
 
   const { data: posts, isLoading: postsLoading } = useQuery({
     queryKey: ['profile-posts', profileId],
     enabled: !!profileId && !isPrivate,
     queryFn: () => api.listProfilePosts(profileId!) as Promise<PostWithMeta[]>,
+  });
+
+  const { data: likedPosts, isLoading: likedLoading } = useQuery({
+    queryKey: ['profile-liked', profileId],
+    enabled: !!profileId && !isPrivate && showLikedTab && activeTab === 'liked',
+    queryFn: () => api.listProfileLikedPosts(profileId!) as Promise<PostWithMeta[]>,
   });
 
   const { data: counts } = useQuery({
@@ -75,6 +85,7 @@ const ProfilePage: React.FC = () => {
       // Following/unfollowing can change followers-only visibility.
       queryClient.invalidateQueries({ queryKey: ['profile', username] });
       queryClient.invalidateQueries({ queryKey: ['profile-posts', profileId] });
+      queryClient.invalidateQueries({ queryKey: ['profile-liked', profileId] });
     },
   });
 
@@ -183,15 +194,52 @@ const ProfilePage: React.FC = () => {
             {viewerId ? 'Подпишитесь, чтобы видеть посты этого пользователя.' : 'Войдите и подпишитесь, чтобы видеть посты этого пользователя.'}
           </div>
         </div>
-      ) : postsLoading ? (
-        <div className="mono text-secondary">ЗАГРУЗКА_ПОСТОВ...</div>
-      ) : posts && posts.length > 0 ? (
-        <div className="post-grid">
-          {posts.map((post) => <PostCard key={post.id} post={post} />)}
-        </div>
       ) : (
-        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-          <div className="text-secondary">Постов пока нет.</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {showLikedTab && (
+            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color, var(--border))' }}>
+              {([
+                { key: 'posts', label: 'Посты' },
+                { key: 'liked', label: 'Лайкнутое' },
+              ] as const).map(({ key, label }) => (
+                <button key={key} type="button" onClick={() => setTab(key)}
+                  style={{
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    padding: '8px 4px', marginBottom: '-1px',
+                    fontSize: '14px', fontFamily: 'var(--font-ui)',
+                    color: activeTab === key ? 'var(--text-1)' : 'var(--text-3)',
+                    fontWeight: activeTab === key ? 600 : 400,
+                    borderBottom: `2px solid ${activeTab === key ? 'var(--accent)' : 'transparent'}`,
+                  }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'posts' ? (
+            postsLoading ? (
+              <div className="mono text-secondary">ЗАГРУЗКА_ПОСТОВ...</div>
+            ) : posts && posts.length > 0 ? (
+              <div className="post-grid">
+                {posts.map((post) => <PostCard key={post.id} post={post} />)}
+              </div>
+            ) : (
+              <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+                <div className="text-secondary">Постов пока нет.</div>
+              </div>
+            )
+          ) : likedLoading ? (
+            <div className="mono text-secondary">ЗАГРУЗКА_ЛАЙКНУТОГО...</div>
+          ) : likedPosts && likedPosts.length > 0 ? (
+            <div className="post-grid">
+              {likedPosts.map((post) => <PostCard key={post.id} post={post} />)}
+            </div>
+          ) : (
+            <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+              <div className="text-secondary">Нет лайкнутых постов.</div>
+            </div>
+          )}
         </div>
       )}
     </div>

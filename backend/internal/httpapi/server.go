@@ -85,6 +85,7 @@ func (s *Server) Routes() http.Handler {
 			r.Get("/profiles/{profileID}", s.getProfileByID)
 			r.Get("/profiles/username/{username}", s.getProfileByUsername)
 			r.Get("/profiles/{profileID}/posts", s.listProfilePosts)
+			r.Get("/profiles/{profileID}/liked", s.listProfileLikedPosts)
 			r.Get("/profiles/{profileID}/stats", s.getProfileStats)
 		})
 
