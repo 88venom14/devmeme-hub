@@ -77,10 +77,17 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/posts", s.listPosts)
 		r.Get("/posts/{postID}", s.getPost)
 		r.Get("/posts/{postID}/comments", s.listComments)
-		r.Get("/profiles/{profileID}", s.getProfileByID)
-		r.Get("/profiles/username/{username}", s.getProfileByUsername)
-		r.Get("/profiles/{profileID}/posts", s.listProfilePosts)
-		r.Get("/profiles/{profileID}/stats", s.getProfileStats)
+
+		// Profile reads adjust to the viewer (followers-only privacy), so they
+		// use optional auth: a token is honored if present, not required.
+		r.Group(func(r chi.Router) {
+			r.Use(s.optionalUser)
+			r.Get("/profiles/{profileID}", s.getProfileByID)
+			r.Get("/profiles/username/{username}", s.getProfileByUsername)
+			r.Get("/profiles/{profileID}/posts", s.listProfilePosts)
+			r.Get("/profiles/{profileID}/stats", s.getProfileStats)
+		})
+
 		r.Get("/search", s.search)
 		r.Get("/tags/top", s.listTopTags)
 		r.Get("/tags/{name}/posts", s.listTagPosts)

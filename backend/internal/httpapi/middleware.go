@@ -34,6 +34,25 @@ func (s *Server) requireUser(next http.Handler) http.Handler {
 	})
 }
 
+// optionalUser attaches the current user to the context when a valid bearer
+// token is present, but allows anonymous requests through. Used on public read
+// routes that adjust their response based on who (if anyone) is viewing.
+func (s *Server) optionalUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if raw := bearerToken(r.Header.Get("Authorization")); raw != "" {
+			if claims, err := auth.ParseToken(s.cfg.JWTSecret, raw); err == nil {
+				ctx := context.WithValue(r.Context(), userContextKey{}, currentUser{
+					ID:    claims.UserID,
+					Email: claims.Email,
+				})
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func userFromContext(ctx context.Context) (currentUser, bool) {
 	user, ok := ctx.Value(userContextKey{}).(currentUser)
 	return user, ok

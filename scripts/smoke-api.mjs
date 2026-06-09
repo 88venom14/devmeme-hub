@@ -257,6 +257,38 @@ async function main() {
   const badType = await api('/api/settings', { method: 'PUT', token, body: { two_factor: 'yes' } });
   check('non-boolean setting -> 400', badType.status === 400, `got ${badType.status}`);
 
+  // ── privacy: profile_followers_only ──────────────────────────────────────
+  console.log('privacy (followers-only profile):');
+  const viewer = await api('/api/auth/register', {
+    method: 'POST',
+    body: { email: `viewer_${rnd}@example.com`, password: 'supersecret123', username: `viewer${rnd}` },
+  });
+  const viewerToken = viewer.data?.token;
+  check('register viewer -> 201', viewer.status === 201 && !!viewerToken);
+
+  await api('/api/settings', { method: 'PUT', token, body: { profile_followers_only: true } });
+
+  const asStranger = await api(`/api/profiles/username/${username}`, { token: viewerToken });
+  check('stranger sees is_private=true', asStranger.data?.is_private === true, JSON.stringify(asStranger.data?.is_private));
+  check('private profile hides bio', asStranger.data?.bio == null);
+  const strangerPosts = await api(`/api/profiles/${me.data.user.id}/posts`, { token: viewerToken });
+  check('stranger gets empty posts list', Array.isArray(strangerPosts.data) && strangerPosts.data.length === 0);
+
+  const asAnon = await api(`/api/profiles/username/${username}`);
+  check('anonymous sees is_private=true', asAnon.data?.is_private === true);
+
+  const asOwner = await api(`/api/profiles/username/${username}`, { token });
+  check('owner sees own full profile', asOwner.data?.is_private !== true && asOwner.data?.username === username);
+
+  await api(`/api/profiles/${me.data.user.id}/follow`, { method: 'POST', token: viewerToken });
+  const asFollower = await api(`/api/profiles/username/${username}`, { token: viewerToken });
+  check('follower sees full profile after following', asFollower.data?.is_private !== true && asFollower.data?.username === username);
+  const followerPosts = await api(`/api/profiles/${me.data.user.id}/posts`, { token: viewerToken });
+  check('follower sees posts after following', Array.isArray(followerPosts.data) && followerPosts.data.length >= 1);
+
+  // reset
+  await api('/api/settings', { method: 'PUT', token, body: { profile_followers_only: false } });
+
   // ── cleanup ────────────────────────────────────────────────────────────────
   console.log('cleanup:');
   const del = await api(`/api/posts/${postId}`, { method: 'DELETE', token });

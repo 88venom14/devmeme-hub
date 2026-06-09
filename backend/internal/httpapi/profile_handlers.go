@@ -57,7 +57,7 @@ func (s *Server) getProfileByID(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "could not load profile")
 		return
 	}
-	writeJSON(w, http.StatusOK, profile)
+	s.respondProfile(w, r, profile)
 }
 
 func (s *Server) getProfileByUsername(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +70,60 @@ func (s *Server) getProfileByUsername(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "could not load profile")
 		return
 	}
+	s.respondProfile(w, r, profile)
+}
+
+// respondProfile applies followers-only privacy: if the profile is restricted
+// and the viewer is not the owner or a follower, only minimal identity is
+// returned with is_private set, so the UI can show a "followers only" notice.
+func (s *Server) respondProfile(w http.ResponseWriter, r *http.Request, profile Profile) {
+	visible, err := s.profileVisibleTo(r.Context(), profile.ID, mustUser(r).ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not load profile")
+		return
+	}
+	if !visible {
+		writeJSON(w, http.StatusOK, Profile{
+			ID:          profile.ID,
+			Username:    profile.Username,
+			DisplayName: profile.DisplayName,
+			AvatarURL:   profile.AvatarURL,
+			BannerURL:   profile.BannerURL,
+			CreatedAt:   profile.CreatedAt,
+			UpdatedAt:   profile.UpdatedAt,
+			IsPrivate:   true,
+		})
+		return
+	}
 	writeJSON(w, http.StatusOK, profile)
+}
+
+// profileVisibleTo reports whether viewerID may see the full profile of
+// targetID. A profile is visible unless its owner enabled
+// profile_followers_only, in which case only the owner and followers qualify.
+func (s *Server) profileVisibleTo(ctx context.Context, targetID, viewerID string) (bool, error) {
+	var followersOnly bool
+	err := s.db.QueryRow(ctx, `
+		SELECT COALESCE((settings->>'profile_followers_only')::boolean, false)
+		FROM users WHERE id = $1
+	`, targetID).Scan(&followersOnly)
+	if err != nil {
+		return false, err
+	}
+	if !followersOnly {
+		return true, nil
+	}
+	if viewerID == "" {
+		return false, nil
+	}
+	if viewerID == targetID {
+		return true, nil
+	}
+	var isFollower bool
+	err = s.db.QueryRow(ctx, `
+		SELECT EXISTS(SELECT 1 FROM follows WHERE follower_id = $1 AND following_id = $2)
+	`, viewerID, targetID).Scan(&isFollower)
+	return isFollower, err
 }
 
 func (s *Server) getProfileStats(w http.ResponseWriter, r *http.Request) {

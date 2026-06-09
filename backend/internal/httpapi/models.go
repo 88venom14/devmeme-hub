@@ -28,6 +28,9 @@ type Profile struct {
 	BannerURL   *string   `json:"banner_url"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+	// IsPrivate is set on profile-view responses when the profile is
+	// followers-only and the viewer is not allowed to see its full content.
+	IsPrivate bool `json:"is_private,omitempty"`
 }
 
 type Tag struct {

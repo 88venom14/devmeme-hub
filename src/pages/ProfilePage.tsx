@@ -40,9 +40,11 @@ const ProfilePage: React.FC = () => {
   const profileId = profile?.id;
   const isOwnProfile = !!viewerId && viewerId === profileId;
 
+  const isPrivate = !!profile?.is_private;
+
   const { data: posts, isLoading: postsLoading } = useQuery({
     queryKey: ['profile-posts', profileId],
-    enabled: !!profileId,
+    enabled: !!profileId && !isPrivate,
     queryFn: () => api.listProfilePosts(profileId!) as Promise<PostWithMeta[]>,
   });
 
@@ -70,6 +72,9 @@ const ProfilePage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['is-following', viewerId, profileId] });
       queryClient.invalidateQueries({ queryKey: ['profile-counts', profileId] });
+      // Following/unfollowing can change followers-only visibility.
+      queryClient.invalidateQueries({ queryKey: ['profile', username] });
+      queryClient.invalidateQueries({ queryKey: ['profile-posts', profileId] });
     },
   });
 
@@ -171,7 +176,14 @@ const ProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {postsLoading ? (
+      {isPrivate ? (
+        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Этот профиль доступен только подписчикам</div>
+          <div className="text-secondary">
+            {viewerId ? 'Подпишитесь, чтобы видеть посты этого пользователя.' : 'Войдите и подпишитесь, чтобы видеть посты этого пользователя.'}
+          </div>
+        </div>
+      ) : postsLoading ? (
         <div className="mono text-secondary">ЗАГРУЗКА_ПОСТОВ...</div>
       ) : posts && posts.length > 0 ? (
         <div className="post-grid">

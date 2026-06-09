@@ -11,6 +11,9 @@ export type Profile = {
   twitch_url: string | null;
   created_at: string;
   updated_at: string;
+  // Set by the backend when the profile is followers-only and the viewer is
+  // not allowed to see its full content.
+  is_private?: boolean;
 };
 
 export type MyProfile = {

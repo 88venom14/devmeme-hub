@@ -178,7 +178,17 @@ func (s *Server) deletePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listProfilePosts(w http.ResponseWriter, r *http.Request) {
-	posts, err := s.queryPosts(r.Context(), postListWhereSQL("p.user_id = $2", "p.created_at DESC"), limitParam(r), chi.URLParam(r, "profileID"))
+	profileID := chi.URLParam(r, "profileID")
+	visible, err := s.profileVisibleTo(r.Context(), profileID, mustUser(r).ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not list profile posts")
+		return
+	}
+	if !visible {
+		writeJSON(w, http.StatusOK, []Post{})
+		return
+	}
+	posts, err := s.queryPosts(r.Context(), postListWhereSQL("p.user_id = $2", "p.created_at DESC"), limitParam(r), profileID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "could not list profile posts")
 		return
