@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase, POST_SELECT } from '../lib/supabase';
-import type { PostWithMeta } from '../types';
+import { api } from '../lib/api';
 import PostCard from '../components/feed/PostCard';
 import { useSessionContext } from '../context/SessionContext';
 
@@ -12,24 +11,7 @@ const FollowingPage: React.FC = () => {
   const { data: posts, isLoading, error } = useQuery({
     queryKey: ['following-feed', userId],
     enabled: !!userId,
-    queryFn: async () => {
-      const { data: follows, error: followErr } = await supabase
-        .from('follows')
-        .select('following_id')
-        .eq('follower_id', userId!);
-      if (followErr) throw followErr;
-
-      const ids = (follows ?? []).map((f) => f.following_id);
-      if (ids.length === 0) return [] as PostWithMeta[];
-
-      const { data, error } = await supabase
-        .from('posts')
-        .select(POST_SELECT)
-        .in('user_id', ids)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as unknown as PostWithMeta[];
-    },
+    queryFn: api.listFollowingPosts,
   });
 
   const postCards = useMemo(

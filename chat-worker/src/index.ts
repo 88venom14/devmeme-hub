@@ -1,5 +1,39 @@
 interface Env {
   OPENROUTER_API_KEY: string;
+  // Comma-separated list of origins allowed to call this worker. Optional —
+  // falls back to DEFAULT_ALLOWED_ORIGINS. Set with `wrangler secret put` or [vars].
+  ALLOWED_ORIGINS?: string;
+}
+
+const DEFAULT_ALLOWED_ORIGINS = [
+  'https://fluttershy.horsefucker.ru',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+];
+
+const MAX_MESSAGE_CHARS = 8000;
+
+function allowedOrigins(env: Env): string[] {
+  const raw = env.ALLOWED_ORIGINS?.trim();
+  if (!raw) return DEFAULT_ALLOWED_ORIGINS;
+  return raw.split(',').map((o) => o.trim()).filter(Boolean);
+}
+
+function originAllowed(origin: string | null, env: Env): boolean {
+  return !!origin && allowedOrigins(env).includes(origin);
+}
+
+// Reflect the request origin only when it is allowlisted; otherwise pin to the
+// primary origin so a wildcard is never sent.
+function corsHeaders(origin: string | null, env: Env): Record<string, string> {
+  const list = allowedOrigins(env);
+  const allow = origin && list.includes(origin) ? origin : list[0];
+  return {
+    'Access-Control-Allow-Origin': allow,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    Vary: 'Origin',
+  };
 }
 
 const FLUTTERSHY_SYSTEM_PROMPT = `Ты — Флаттершай.
@@ -25,12 +59,6 @@ const FLUTTERSHY_SYSTEM_PROMPT = `Ты — Флаттершай.
 Не используй эмодзи, если их не запросили. Твоя нежность должна передаваться словами и ритмом`;
 
 const MODEL = 'poolside/laguna-xs.2:free';
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
 
 interface ChatTurn {
   role: 'user' | 'assistant';
@@ -72,12 +100,24 @@ function sanitizeReply(raw: string): string {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const origin = request.headers.get('Origin');
+    const cors = corsHeaders(origin, env);
+
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: CORS_HEADERS });
+      return new Response(null, { headers: cors });
     }
 
     if (request.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
+      return new Response('Method not allowed', { status: 405, headers: cors });
+    }
+
+    // This worker proxies a paid LLM API under a server-held key. Restrict it to
+    // requests from the app's own origin so it cannot be abused as an open proxy.
+    if (!originAllowed(origin, env)) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...cors, 'Content-Type': 'application/json' },
+      });
     }
 
     let body: { history?: ChatTurn[] };
@@ -86,7 +126,7 @@ export default {
     } catch {
       return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
         status: 400,
-        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       });
     }
 
@@ -94,7 +134,7 @@ export default {
     if (history.length === 0) {
       return new Response(JSON.stringify({ error: 'history is required' }), {
         status: 400,
-        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       });
     }
 
@@ -105,6 +145,7 @@ export default {
           typeof m.content === 'string' &&
           (m.role === 'user' || m.role === 'assistant'),
       )
+      .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_MESSAGE_CHARS) }))
       .slice(-30);
 
     const upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -128,7 +169,7 @@ export default {
       const text = await upstream.text();
       return new Response(
         JSON.stringify({ error: `OpenRouter ${upstream.status}: ${text.slice(0, 300)}` }),
-        { status: 502, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+        { status: 502, headers: { ...cors, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -139,14 +180,14 @@ export default {
     if (typeof reply !== 'string') {
       return new Response(JSON.stringify({ error: 'No content in response' }), {
         status: 502,
-        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       });
     }
 
     const cleaned = sanitizeReply(reply);
 
     return new Response(JSON.stringify({ reply: cleaned || reply.trim() }), {
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      headers: { ...cors, 'Content-Type': 'application/json' },
     });
   },
 };

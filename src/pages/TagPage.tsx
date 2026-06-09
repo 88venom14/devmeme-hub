@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { supabase, POST_SELECT } from '../lib/supabase';
-import type { PostWithMeta } from '../types';
+import { api } from '../lib/api';
 import PostCard from '../components/feed/PostCard';
 
 const TagPage: React.FC = () => {
@@ -11,27 +10,7 @@ const TagPage: React.FC = () => {
   const { data: posts, isLoading, error } = useQuery({
     queryKey: ['tag-posts', name],
     enabled: !!name,
-    queryFn: async () => {
-      const { data: tagRow, error: tagErr } = await supabase
-        .from('tags')
-        .select('id')
-        .eq('name', name!)
-        .maybeSingle();
-      if (tagErr) throw tagErr;
-      if (!tagRow) return [] as PostWithMeta[];
-
-      const { data, error } = await supabase
-        .from('post_tags')
-        .select(`posts ( ${POST_SELECT} )`)
-        .eq('tag_id', tagRow.id);
-      if (error) throw error;
-      return (data ?? [])
-        .map((row: { posts: PostWithMeta | PostWithMeta[] | null }) => {
-          const p = row.posts;
-          return Array.isArray(p) ? p[0] : p;
-        })
-        .filter((p): p is PostWithMeta => p !== null && p !== undefined);
-    },
+    queryFn: () => api.listTagPosts(name!),
   });
 
   const postCards = useMemo(

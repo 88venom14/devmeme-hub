@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import type { Profile } from '../types';
 import { uploadPostMedia } from '../lib/storage';
 import { useSessionContext } from '../context/SessionContext';
@@ -104,15 +104,7 @@ const SettingsPage: React.FC = () => {
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile-settings', userId],
     enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data as Profile | null;
-    },
+    queryFn: () => api.getMyProfile() as Promise<Profile | null>,
   });
 
   useEffect(() => {
@@ -150,7 +142,7 @@ const SettingsPage: React.FC = () => {
         throw new Error('Twitch: только ссылки на twitch.tv');
 
       const payload = {
-        id: userId, username: cleanUsername,
+        username: cleanUsername,
         display_name: displayName.trim() || null,
         bio: bio.trim() || null,
         website_url: website.trim() || null,
@@ -158,10 +150,8 @@ const SettingsPage: React.FC = () => {
         github_url: githubUrl.trim() || null,
         youtube_url: youtubeUrl.trim() || null,
         twitch_url: twitchUrl.trim() || null,
-        updated_at: new Date().toISOString(),
       };
-      const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
-      if (error) throw error;
+      await api.updateMyProfile(payload);
     },
     onSuccess: () => {
       setStatusMsg({ kind: 'ok', text: 'Профиль сохранён ✓' });
@@ -175,7 +165,7 @@ const SettingsPage: React.FC = () => {
   const uploadAvatar = useMutation({
     mutationFn: async (file: File) => {
       if (!userId) throw new Error('Вы не авторизованы');
-      const url = await uploadPostMedia(file, userId);
+      const url = await uploadPostMedia(file);
       setAvatarUrl(url);
       return url;
     },
@@ -185,7 +175,7 @@ const SettingsPage: React.FC = () => {
   const uploadBanner = useMutation({
     mutationFn: async (file: File) => {
       if (!userId) throw new Error('Вы не авторизованы');
-      const url = await uploadPostMedia(file, userId);
+      const url = await uploadPostMedia(file);
       setBannerUrl(url);
       return url;
     },
@@ -193,7 +183,8 @@ const SettingsPage: React.FC = () => {
   });
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    api.signOut();
+    queryClient.clear();
     navigate('/login');
   };
 

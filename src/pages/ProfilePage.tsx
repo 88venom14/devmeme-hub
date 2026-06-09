@@ -20,7 +20,7 @@ const TwitchProfileIcon = () => (
     <path d="M2.149 0L.537 4.119v16.836h5.731V24h3.224l3.045-3.045h4.657L23.463 14.7V0H2.149zm19.164 13.612l-3.582 3.582h-5.731l-3.045 3.045v-3.045H4.119V1.612h17.194v12zM18.358 5.731h-1.971v5.731h1.971V5.731zm-5.731 0h-1.971v5.731h1.971V5.731z"/>
   </svg>
 );
-import { supabase, POST_SELECT } from '../lib/supabase';
+import { api } from '../lib/api';
 import type { Profile, PostWithMeta } from '../types';
 import PostCard from '../components/feed/PostCard';
 import { useSessionContext } from '../context/SessionContext';
@@ -34,15 +34,7 @@ const ProfilePage: React.FC = () => {
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ['profile', username],
     enabled: !!username,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('username', username!)
-        .single();
-      if (error) throw error;
-      return data as Profile;
-    },
+    queryFn: () => api.getProfileByUsername(username!) as Promise<Profile>,
   });
 
   const profileId = profile?.id;
@@ -51,56 +43,28 @@ const ProfilePage: React.FC = () => {
   const { data: posts, isLoading: postsLoading } = useQuery({
     queryKey: ['profile-posts', profileId],
     enabled: !!profileId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('posts')
-        .select(POST_SELECT)
-        .eq('user_id', profileId!)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as unknown as PostWithMeta[];
-    },
+    queryFn: () => api.listProfilePosts(profileId!) as Promise<PostWithMeta[]>,
   });
 
   const { data: counts } = useQuery({
     queryKey: ['profile-counts', profileId],
     enabled: !!profileId,
-    queryFn: async () => {
-      const [followersRes, followingRes] = await Promise.all([
-        supabase.from('follows').select('id', { head: true, count: 'exact' }).eq('following_id', profileId!),
-        supabase.from('follows').select('id', { head: true, count: 'exact' }).eq('follower_id', profileId!),
-      ]);
-      return {
-        followers: followersRes.count ?? 0,
-        following: followingRes.count ?? 0,
-      };
-    },
+    queryFn: () => api.getProfileStats(profileId!),
   });
 
   const { data: isFollowing } = useQuery({
     queryKey: ['is-following', viewerId, profileId],
     enabled: !!viewerId && !!profileId && !isOwnProfile,
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('follows')
-        .select('id', { head: true, count: 'exact' })
-        .eq('follower_id', viewerId!)
-        .eq('following_id', profileId!);
-      return (count ?? 0) > 0;
-    },
+    queryFn: async () => (await api.getFollowStatus(profileId!)).isFollowing,
   });
 
   const toggleFollow = useMutation({
     mutationFn: async () => {
       if (!viewerId || !profileId) throw new Error('Войдите, чтобы подписаться');
       if (isFollowing) {
-        const { error } = await supabase.from('follows').delete()
-          .eq('follower_id', viewerId).eq('following_id', profileId);
-        if (error) throw error;
+        await api.unfollowProfile(profileId);
       } else {
-        const { error } = await supabase.from('follows')
-          .insert({ follower_id: viewerId, following_id: profileId });
-        if (error) throw error;
+        await api.followProfile(profileId);
       }
     },
     onSuccess: () => {

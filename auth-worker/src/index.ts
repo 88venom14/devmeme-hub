@@ -9,10 +9,20 @@ interface Env {
   STATE_SECRET: string;
 }
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-};
+function allowedOrigins(env: Env): string[] {
+  return [env.APP_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'].filter(Boolean);
+}
+
+// Reflect the request origin only when allowlisted; never emit a wildcard.
+function corsHeaders(origin: string | null, env: Env): Record<string, string> {
+  const list = allowedOrigins(env);
+  const allow = origin && list.includes(origin) ? origin : list[0] ?? env.APP_URL;
+  return {
+    'Access-Control-Allow-Origin': allow,
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    Vary: 'Origin',
+  };
+}
 
 async function signState(secret: string, value: string): Promise<string> {
   const key = await crypto.subtle.importKey(
@@ -91,9 +101,10 @@ async function supabaseUpsertUser(
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const cors = corsHeaders(request.headers.get('Origin'), env);
 
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: CORS_HEADERS });
+      return new Response(null, { headers: cors });
     }
 
     // ── GitHub ──────────────────────────────────────────────────────────────
@@ -214,6 +225,6 @@ export default {
       return redirect ?? errorRedirect(env.APP_URL, 'supabase_link_failed');
     }
 
-    return new Response('DevMeme Auth Worker', { status: 200, headers: CORS_HEADERS });
+    return new Response('DevMeme Auth Worker', { status: 200, headers: cors });
   },
 };

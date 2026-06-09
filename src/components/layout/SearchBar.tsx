@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 
 type TagResult     = { kind: 'tag';     id: string; name: string };
 type PostResult    = { kind: 'post';    id: string; title: string };
@@ -41,11 +41,8 @@ const SearchBar: React.FC = memo(() => {
         queryKey: ['tag-suggestions', debounced],
         staleTime: 30_000,
         queryFn: async () => {
-          const { data, error } = await supabase
-            .from('tags').select('id, name')
-            .ilike('name', `${debounced}%`).order('name').limit(8);
-          if (error) throw error;
-          return (data ?? []) as { id: string; name: string }[];
+          const data = await api.search(`#${debounced}`);
+          return data.tags;
         },
       }).then((data) => {
         if (!cancelled) setResults(data.map((t) => ({ kind: 'tag' as const, ...t })));
@@ -56,24 +53,16 @@ const SearchBar: React.FC = memo(() => {
           queryKey: ['profile-suggestions', debounced],
           staleTime: 30_000,
           queryFn: async () => {
-            const { data, error } = await supabase
-              .from('profiles').select('username, display_name')
-              .or(`username.ilike.%${debounced}%,display_name.ilike.%${debounced}%`)
-              .limit(3);
-            if (error) throw error;
-            return (data ?? []) as { username: string; display_name: string | null }[];
+            const data = await api.search(debounced);
+            return data.profiles;
           },
         }),
         queryClient.fetchQuery({
           queryKey: ['post-suggestions', debounced],
           staleTime: 30_000,
           queryFn: async () => {
-            const { data, error } = await supabase
-              .from('posts').select('id, title')
-              .ilike('title', `%${debounced}%`)
-              .order('created_at', { ascending: false }).limit(5);
-            if (error) throw error;
-            return (data ?? []) as { id: string; title: string }[];
+            const data = await api.search(debounced);
+            return data.posts;
           },
         }),
       ]).then(([profiles, posts]) => {

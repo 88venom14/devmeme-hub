@@ -30,7 +30,4 @@ export default defineConfig({
       },
     },
   },
-  define: {
-    'import.meta.env.VITE_REDIRECT_URL': JSON.stringify('https://88venom14.github.io/devmeme/auth/callback')
-  }
 });

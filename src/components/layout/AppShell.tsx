@@ -1,6 +1,6 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import type { Session } from '@supabase/supabase-js';
+import type { AppSession } from '../../lib/api';
 import type { MyProfile } from '../../types';
 import SearchBar from './SearchBar';
 import { useTopTags } from '../../hooks/useTopTags';
@@ -13,7 +13,7 @@ const StableOutlet = memo(() => <Outlet />);
 StableOutlet.displayName = 'StableOutlet';
 
 interface AppShellProps {
-  session: Session | null;
+  session: AppSession | null;
 }
 
 const AppShell: React.FC<AppShellProps> = () => {

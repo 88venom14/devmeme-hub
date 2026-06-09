@@ -1,8 +1,7 @@
 import React, { memo, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { supabase, POST_SELECT } from '../lib/supabase';
-import type { PostWithMeta } from '../types';
+import { api } from '../lib/api';
 import PostCard from '../components/feed/PostCard';
 import Avatar from '../components/Avatar';
 import { useSessionContext } from '../context/SessionContext';
@@ -133,14 +132,7 @@ const FeedPage: React.FC = memo(() => {
   const { data: posts, isLoading, error } = useQuery({
     queryKey: ['posts'],
     staleTime: 30_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('posts')
-        .select(POST_SELECT)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as unknown as PostWithMeta[];
-    },
+    queryFn: api.listPosts,
   });
 
   const { data: myProfile } = useMyProfile(session?.user.id);

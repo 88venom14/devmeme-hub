@@ -1,0 +1,15 @@
+DROP TABLE IF EXISTS public.chat_messages;
+DROP TABLE IF EXISTS public.chat_conversations;
+DROP TABLE IF EXISTS public.user_activity;
+DROP TABLE IF EXISTS public.saved_posts;
+DROP TABLE IF EXISTS public.post_tags;
+DROP TABLE IF EXISTS public.tags;
+DROP TABLE IF EXISTS public.follows;
+DROP TABLE IF EXISTS public.stars;
+DROP TABLE IF EXISTS public.comments;
+DROP TABLE IF EXISTS public.posts;
+DROP TABLE IF EXISTS public.profiles;
+DROP TABLE IF EXISTS public.user_sessions;
+DROP TABLE IF EXISTS public.auth_identities;
+DROP TABLE IF EXISTS public.users;
+DROP FUNCTION IF EXISTS public.set_updated_at();

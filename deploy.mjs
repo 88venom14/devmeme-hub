@@ -3,6 +3,20 @@
 import { execSync } from 'child_process';
 import { readFileSync, writeFileSync, cpSync, rmSync, existsSync } from 'fs';
 
+function preparePagesDist() {
+  if (!existsSync('dist/index.html')) {
+    throw new Error('dist/index.html not found. Run vite build first.');
+  }
+  const prodHtml = readFileSync('dist/index.html', 'utf8');
+  writeFileSync('dist/404.html', prodHtml);
+  writeFileSync('dist/CNAME', 'fluttershy.horsefucker.ru\n');
+}
+
+if (process.argv.includes('--prepare-pages')) {
+  preparePagesDist();
+  process.exit(0);
+}
+
 const devHtml = readFileSync('index.html', 'utf8');
 
 try {
@@ -23,6 +37,7 @@ try {
   const prodHtml = readFileSync('dist/index.html', 'utf8');
   writeFileSync('index.html', prodHtml);
   writeFileSync('404.html', prodHtml);
+  writeFileSync('CNAME', 'fluttershy.horsefucker.ru\n');
 
   const msg = `Deploy ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`;
   execSync('git add -A', { stdio: 'inherit' });

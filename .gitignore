@@ -1,15 +1,44 @@
 # Dependencies
 node_modules/
+*/node_modules/
 
-# Build output
-# dist/
+# Backend local build/runtime output
+backend/bin/
+backend/media/
+backend/.gocache/
+backend/*.log
+
+# Backups and local data exports
+backups/
+*.dump
+*.backup
+*.jsonl
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+vite*.log
 
 # Environment variables
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
+!.env.production.example
+!backend/.env.example
 
-# Editor
+# Coverage/cache
+coverage/
+.nyc_output/
+.vite/
+*.test
+*.prof
+
+# OS/editor
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
 .claude/

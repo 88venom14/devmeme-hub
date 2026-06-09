@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Code, ExternalLink, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import type { GithubRepoData, PostWithMeta } from '../../types';
 import { useSessionContext } from '../../context/SessionContext';
 import { useInvalidatePosts } from '../../hooks/useInvalidatePosts';
@@ -113,24 +113,16 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
   const { data: interactions } = useQuery({
     queryKey: interactionsKey,
     enabled: !!userId,
-    queryFn: async () => {
-      const [starRes, savedRes] = await Promise.all([
-        supabase.from('stars').select('id', { head: true, count: 'exact' }).eq('post_id', post.id).eq('user_id', userId!),
-        supabase.from('saved_posts').select('id', { head: true, count: 'exact' }).eq('post_id', post.id).eq('user_id', userId!),
-      ]);
-      return { isStarred: (starRes.count ?? 0) > 0, isSaved: (savedRes.count ?? 0) > 0 };
-    },
+    queryFn: () => api.getPostInteractions(post.id),
   });
 
   const toggleStar = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error('Sign in to star');
       if (interactions?.isStarred) {
-        const { error } = await supabase.from('stars').delete().eq('post_id', post.id).eq('user_id', userId);
-        if (error) throw error;
+        await api.unstarPost(post.id);
       } else {
-        const { error } = await supabase.from('stars').insert({ post_id: post.id, user_id: userId });
-        if (error) throw error;
+        await api.starPost(post.id);
       }
     },
     onMutate: async () => {
@@ -147,11 +139,9 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
     mutationFn: async () => {
       if (!userId) throw new Error('Sign in to save');
       if (interactions?.isSaved) {
-        const { error } = await supabase.from('saved_posts').delete().eq('post_id', post.id).eq('user_id', userId);
-        if (error) throw error;
+        await api.unsavePost(post.id);
       } else {
-        const { error } = await supabase.from('saved_posts').insert({ post_id: post.id, user_id: userId });
-        if (error) throw error;
+        await api.savePost(post.id);
       }
     },
     onMutate: async () => {
@@ -166,8 +156,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
 
   const deletePost = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('posts').delete().eq('id', post.id);
-      if (error) throw error;
+      await api.deletePost(post.id);
     },
     onSuccess: () => { invalidatePosts(); if (isDetail) navigate('/feed'); },
   });

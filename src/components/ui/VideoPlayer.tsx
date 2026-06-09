@@ -5,6 +5,14 @@ interface VideoPlayerProps {
   maxHeight?: number;
 }
 
+function videoTypeFromSrc(src: string): string | undefined {
+  const path = src.split('?')[0].toLowerCase();
+  if (path.endsWith('.mp4')) return 'video/mp4';
+  if (path.endsWith('.webm')) return 'video/webm';
+  if (path.endsWith('.mov')) return 'video/quicktime';
+  return undefined;
+}
+
 function fmt(secs: number): string {
   if (!isFinite(secs) || secs < 0) return '0:00';
   const m = Math.floor(secs / 60);
@@ -66,6 +74,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, maxHeight = 480 }
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dragging, setDragging] = useState<'progress' | 'volume' | null>(null);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
   const draggingRef = useRef<'progress' | 'volume' | null>(null);
 
   // Keep ref in sync for mousemove handlers
@@ -119,8 +128,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, maxHeight = 480 }
   const togglePlay = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
-    if (v.paused) v.play();
-    else v.pause();
+    setPlaybackError(null);
+    if (v.paused) {
+      void v.play().catch((err: unknown) => {
+        const name = err instanceof DOMException ? err.name : 'PlaybackError';
+        setPlaying(false);
+        if (name === 'NotSupportedError') {
+          setPlaybackError('Этот браузер не поддерживает кодек этого видео.');
+          return;
+        }
+        setPlaybackError('Не удалось воспроизвести видео.');
+      });
+    } else {
+      v.pause();
+    }
   }, []);
 
   const getProgressRatio = (e: React.MouseEvent<HTMLDivElement> | MouseEvent) => {
@@ -211,11 +232,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, maxHeight = 480 }
     >
       <video
         ref={videoRef}
-        src={src}
         onClick={togglePlay}
         onPlay={() => { setPlaying(true); startRaf(); }}
         onPause={() => { setPlaying(false); stopRaf(); }}
         onEnded={() => { setPlaying(false); stopRaf(); }}
+        onError={() => {
+          setPlaying(false);
+          setPlaybackError('Этот браузер не поддерживает формат или кодек этого видео.');
+        }}
         onLoadedMetadata={() => setDuration(videoRef.current?.duration ?? 0)}
         // Update time on seek while paused
         onTimeUpdate={() => {
@@ -232,7 +256,41 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, maxHeight = 480 }
             ? { flex: 1, minHeight: 0, maxHeight: 'none' }
             : { maxHeight: `${maxHeight}px` }),
         }}
-      />
+      >
+        <source src={src} type={videoTypeFromSrc(src)} />
+      </video>
+
+      {playbackError && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 18,
+            background: 'rgba(0,0,0,0.72)',
+            color: 'rgba(255,255,255,0.88)',
+            textAlign: 'center',
+            fontSize: 12,
+            lineHeight: 1.45,
+            fontFamily: 'var(--font-mono)',
+          }}
+        >
+          <div>
+            <div>{playbackError}</div>
+            <a
+              href={src}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--accent)', display: 'inline-block', marginTop: 8 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              открыть видео напрямую
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Controls overlay */}
       <div

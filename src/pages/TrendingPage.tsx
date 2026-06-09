@@ -1,21 +1,12 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase, POST_SELECT } from '../lib/supabase';
-import type { PostWithMeta } from '../types';
+import { api } from '../lib/api';
 import PostCard from '../components/feed/PostCard';
 
 const TrendingPage: React.FC = () => {
   const { data: posts, isLoading, error } = useQuery({
     queryKey: ['trending-posts'],
-    queryFn: async () => {
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data, error } = await supabase
-        .from('posts')
-        .select(POST_SELECT)
-        .gte('created_at', sevenDaysAgo);
-      if (error) throw error;
-      return data as unknown as PostWithMeta[];
-    },
+    queryFn: api.listTrendingPosts,
   });
 
   const ranked = useMemo(() => {

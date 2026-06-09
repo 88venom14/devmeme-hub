@@ -3,8 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { supabase, POST_SELECT } from '../lib/supabase';
-import type { Comment, PostWithMeta } from '../types';
+import { api } from '../lib/api';
+import type { Comment } from '../types';
 import PostCard from '../components/feed/PostCard';
 import Avatar from '../components/Avatar';
 import { useSessionContext } from '../context/SessionContext';
@@ -89,26 +89,13 @@ const PostDetailPage: React.FC = () => {
   const { data: post, isLoading: postLoading, error: postError } = useQuery({
     queryKey: ['post', id],
     enabled: !!id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('posts').select(POST_SELECT).eq('id', id!).single();
-      if (error) throw error;
-      return data as unknown as PostWithMeta;
-    },
+    queryFn: () => api.getPost(id!),
   });
 
   const { data: comments, isLoading: commentsLoading } = useQuery({
     queryKey: ['comments', id],
     enabled: !!id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('comments')
-        .select('*, profiles:user_id (*)')
-        .eq('post_id', id!)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as Comment[];
-    },
+    queryFn: () => api.listComments(id!),
   });
 
   /* group into threads */
@@ -140,8 +127,7 @@ const PostDetailPage: React.FC = () => {
 
   const deleteComment = useMutation({
     mutationFn: async (commentId: string) => {
-      const { error } = await supabase.from('comments').delete().eq('id', commentId);
-      if (error) throw error;
+      await api.deleteComment(commentId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', id] });
@@ -156,13 +142,11 @@ const PostDetailPage: React.FC = () => {
       const trimmed = text.trim();
       if (!trimmed) throw new Error('Комментарий не может быть пустым');
       if (trimmed.length > LIMITS.comment) throw new Error(`Максимум ${LIMITS.comment} символов`);
-      const { error } = await supabase.from('comments').insert({
+      await api.createComment({
         post_id: id,
-        user_id: session.user.id,
         text: trimmed,
         parent_id: replyTo?.id ?? null,
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       setText('');

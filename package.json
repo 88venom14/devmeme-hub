@@ -5,14 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node deploy.mjs --prepare-pages",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "deploy": "node deploy.mjs"
   },
   "dependencies": {
     "@fontsource/cascadia-code": "^5.2.3",
-    "@supabase/supabase-js": "^2.104.1",
     "@tanstack/react-query": "^5.100.5",
     "date-fns": "^4.1.0",
     "lucide-react": "^1.11.0",

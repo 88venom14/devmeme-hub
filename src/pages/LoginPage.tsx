@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../lib/api';
 import { LIMITS, validateUsername } from '../lib/validation';
 
 const GithubIcon = () => (
@@ -16,8 +17,6 @@ const GoogleIcon = () => (
     <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.6l6.2 5.2C40.9 35.8 44 30.4 44 24c0-1.3-.1-2.4-.4-3.5z" />
   </svg>
 );
-
-const AUTH_WORKER_URL = import.meta.env.VITE_AUTH_WORKER_URL as string | undefined;
 
 type Mode = 'signin' | 'signup';
 type Provider = 'github' | 'google';
@@ -54,6 +53,7 @@ supabase_link_failed: 'Ошибка сервера авторизации — п
 };
 
 const LoginPage: React.FC = () => {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -70,26 +70,7 @@ const LoginPage: React.FC = () => {
 
   const handleOAuth = async (provider: Provider) => {
     setMessage(null);
-
-    if (provider === 'github' || provider === 'google') {
-      if (!AUTH_WORKER_URL) {
-        setMessage({ kind: 'error', text: 'VITE_AUTH_WORKER_URL не задан. Задеплойте auth-worker и добавьте переменную.' });
-        return;
-      }
-      window.location.href = `${AUTH_WORKER_URL}/auth/${provider}`;
-      return;
-    }
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: window.location.origin + '/', scopes: 'user:email read:user' },
-    });
-    if (error) {
-      setMessage({
-        kind: 'error',
-        text: `${provider}: ${error.message}. Enable this provider in Supabase Dashboard → Authentication → Providers.`,
-      });
-    }
+    setMessage({ kind: 'info', text: `${provider}: OAuth пока не подключён к локальному backend. Используйте вход по email.` });
   };
 
   const handleEmail = async (e: React.FormEvent) => {
@@ -117,23 +98,11 @@ const LoginPage: React.FC = () => {
     setMessage(null);
     try {
       if (mode === 'signin') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        await api.login(email, password);
+        navigate('/feed', { replace: true });
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email, password,
-          options: {
-            emailRedirectTo: window.location.origin + '/',
-            data: {
-              username: username.trim() || email.split('@')[0],
-              display_name: username.trim() || email.split('@')[0],
-            },
-          },
-        });
-        if (error) throw error;
-        if (data.user && !data.session) {
-          setMessage({ kind: 'info', text: '📨 Письмо отправлено на ' + email + '. Перейдите по ссылке в письме для подтверждения.' });
-        }
+        await api.register(email, password, username.trim() || email.split('@')[0]);
+        navigate('/feed', { replace: true });
       }
     } catch (err) {
       setMessage({ kind: 'error', text: (err as Error).message });

@@ -1,13 +1,13 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import { labelStyle, inputStyle } from '../styles/forms';
 import { useSessionContext } from '../context/SessionContext';
 import { useInvalidatePosts } from '../hooks/useInvalidatePosts';
 import { useMyProfile } from '../hooks/useMyProfile';
 import { uploadPostMedia } from '../lib/storage';
-import { parseTags, attachTagsToPost } from '../lib/tags';
+import { parseTags } from '../lib/tags';
 import { LIMITS, isValidGithubUrl } from '../lib/validation';
 import MarkdownContent from '../components/MarkdownContent';
 import Avatar from '../components/Avatar';
@@ -178,7 +178,7 @@ const CreatePostPage: React.FC = memo(() => {
 
   const createPost = useMutation({
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = session?.user;
       if (!user) throw new Error('Необходимо войти в аккаунт');
       if (title.trim().length > LIMITS.title) throw new Error(`Заголовок: максимум ${LIMITS.title} символов`);
       if (content.length > LIMITS.content) throw new Error(`Контент: максимум ${LIMITS.content} символов`);
@@ -187,16 +187,17 @@ const CreatePostPage: React.FC = memo(() => {
 
       let imageUrl: string | null = null;
       let videoUrl: string | null = null;
-      if (imageFile) imageUrl = await uploadPostMedia(imageFile, user.id);
-      if (videoFile) videoUrl = await uploadPostMedia(videoFile, user.id);
+      if (imageFile) imageUrl = await uploadPostMedia(imageFile);
+      if (videoFile) videoUrl = await uploadPostMedia(videoFile);
 
-      const { data, error } = await supabase
-        .from('posts')
-        .insert({ user_id: user.id, title: title.trim(), content_md: content.trim() || null, github_url: githubUrl.trim() || null, image_url: imageUrl, video_url: videoUrl })
-        .select().single();
-      if (error) throw error;
-      if (tags.length > 0) await attachTagsToPost(data.id, tags);
-      return data;
+      return api.createPost({
+        title: title.trim(),
+        content_md: content.trim() || null,
+        github_url: githubUrl.trim() || null,
+        image_url: imageUrl,
+        video_url: videoUrl,
+        tags,
+      });
     },
     onSuccess: (data) => { invalidatePosts(); navigate(`/post/${data.id}`); },
     onError: (err: Error) => setErrorMsg(err.message),

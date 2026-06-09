@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useSession } from './hooks/useSession';
 import { SessionContext } from './context/SessionContext';
-import { supabase } from './lib/supabase';
 import ErrorBoundary from './components/ErrorBoundary';
 
 import './styles/variables.css';
@@ -40,36 +39,7 @@ const queryClient = new QueryClient({
 const App: React.FC = () => {
   const { session, loading } = useSession();
 
-  const [oauthPending, setOauthPending] = React.useState(() => {
-    const search = new URLSearchParams(window.location.search);
-    const hash = new URLSearchParams(window.location.hash.slice(1));
-    return search.has('code') || hash.has('access_token');
-  });
-
-  React.useEffect(() => {
-    // Implicit flow: #access_token= from magic link (GitHub via Worker)
-    const hash = new URLSearchParams(window.location.hash.slice(1));
-    const accessToken = hash.get('access_token');
-    const refreshToken = hash.get('refresh_token');
-    if (accessToken && refreshToken) {
-      window.history.replaceState({}, '', window.location.pathname);
-      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-        .finally(() => setOauthPending(false));
-      return;
-    }
-
-    // PKCE flow: ?code= from direct Supabase OAuth (Google, Twitch)
-    const code = new URLSearchParams(window.location.search).get('code');
-    if (!code) return;
-    supabase.auth.exchangeCodeForSession(code).finally(() => {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('code');
-      window.history.replaceState({}, '', url.toString());
-      setOauthPending(false);
-    });
-  }, []);
-
-  if (loading || oauthPending) {
+  if (loading) {
     return (
       <div
         style={{
