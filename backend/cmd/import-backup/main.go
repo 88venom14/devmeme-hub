@@ -22,7 +22,7 @@ type row map[string]any
 func main() {
 	backupDir := os.Getenv("BACKUP_DIR")
 	if backupDir == "" {
-		backupDir = filepath.Join("..", "backups", "devmeme_supabase_jsonl")
+		backupDir = filepath.Join("..", "backups", "devmeme_backup_jsonl")
 	}
 
 	databaseURL, err := config.DatabaseURL()

@@ -1,1 +1,1 @@
-import{c as r}from"./index.js";async function i(a,t){const{url:o}=await r.uploadMedia(a);return o}export{i as u};
+import{c as t}from"./index.js";async function r(a){const{url:o}=await t.uploadMedia(a);return o}export{r as u};

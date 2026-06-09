@@ -2,12 +2,12 @@
 
 ## Project Structure & Module Organization
 
-This repository contains a React/Vite frontend, a Go REST backend, Cloudflare Workers, and database migrations.
+This repository contains a React/Vite frontend, a Go REST backend, one Cloudflare Worker, and database migrations.
 
 - `src/` is the frontend source: `pages/`, `components/`, `hooks/`, `lib/`, `types/`, and `styles/`.
 - `backend/` contains the Go API, with entrypoints in `cmd/` and private packages under `internal/`.
-- `chat-worker/` and `auth-worker/` are Wrangler Worker projects.
-- `supabase/` stores schema and migration SQL. `docs/` contains deployment notes.
+- `backend/internal/migrations/sql/` holds the PostgreSQL schema and migration SQL.
+- `chat-worker/` is a Wrangler Worker project (AI chat proxy). `docs/` contains deployment notes.
 - `dist/`, root `assets/`, and worker `dist/` folders are generated output; edit source files instead.
 
 ## Build, Test, and Development Commands
@@ -24,7 +24,7 @@ This repository contains a React/Vite frontend, a Go REST backend, Cloudflare Wo
 
 ## Coding Style & Naming Conventions
 
-Use TypeScript for frontend code. Name React components in PascalCase, for example `PostCard.tsx`, and hooks with the `useThing` pattern. Keep shared data shapes in `src/types/` and API access in `src/lib/`. Format Go code with `gofmt`; keep backend packages small and scoped under `backend/internal/`. Use numeric migration names in `backend/internal/migrations/sql/` and date-based names in `supabase/migrations/`.
+Use TypeScript for frontend code. Name React components in PascalCase, for example `PostCard.tsx`, and hooks with the `useThing` pattern. Keep shared data shapes in `src/types/` and API access in `src/lib/`. Format Go code with `gofmt`; keep backend packages small and scoped under `backend/internal/`. Use numeric migration names in `backend/internal/migrations/sql/`.
 
 ## Testing Guidelines
 
@@ -36,4 +36,4 @@ Recent history uses short, descriptive subjects such as `Mobile responsive layou
 
 ## Security & Configuration Tips
 
-Copy `.env.example` files instead of committing secrets. For backend work, copy `backend/.env.example` to `backend/.env` and set a production-safe `JWT_SECRET`. Keep Supabase credentials, Wrangler secrets, and database URLs private.
+Copy `.env.example` files instead of committing secrets. For backend work, copy `backend/.env.example` to `backend/.env` and set a production-safe `JWT_SECRET`. Keep Wrangler secrets and database URLs private.

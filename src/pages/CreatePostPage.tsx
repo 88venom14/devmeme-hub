@@ -326,7 +326,7 @@ const CreatePostPage: React.FC = memo(() => {
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 14, pointerEvents: 'none' }}>#</span>
                 <input
-                  type="text" placeholder="react, typescript, supabase"
+                  type="text" placeholder="react, typescript, golang"
                   style={{ ...inputStyle, paddingLeft: 26 }}
                   value={tagsInput}
                   onChange={(e) => setTagsInput(e.target.value.slice(0, LIMITS.tagsInput))}

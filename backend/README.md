@@ -1,6 +1,6 @@
 # devmeme-hub Go backend
 
-REST API backend for PostgreSQL. It does not use Supabase runtime APIs.
+Self-contained REST API backend backed by PostgreSQL.
 
 ## Run
 
@@ -27,7 +27,7 @@ Migrations create the required tables automatically:
 - `tags`, `post_tags`, `saved_posts`, `user_activity`
 - `chat_conversations`, `chat_messages`
 
-`profiles(id)` is the public owner identity, matching the current Supabase schema.
+`profiles(id)` is the public owner identity.
 Content tables such as `posts`, `comments`, `stars`, `follows`, `saved_posts`, and
 chat tables reference `profiles(id)`. The standalone `users` table stores backend
 auth data, and `profiles.id` references `users.id`.

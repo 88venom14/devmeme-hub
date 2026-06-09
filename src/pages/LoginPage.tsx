@@ -49,7 +49,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   google_no_code: 'Google не вернул код авторизации.',
   google_token_failed: 'Не удалось получить токен Google.',
   google_no_email: 'Google аккаунт не имеет подтверждённого email.',
-supabase_link_failed: 'Ошибка сервера авторизации — попробуйте позже.',
+  auth_link_failed: 'Ошибка сервера авторизации — попробуйте позже.',
 };
 
 const LoginPage: React.FC = () => {

@@ -1,28 +1,27 @@
 # devmeme-hub Project Base
 
-Last updated: 2026-05-29.
+Last updated: 2026-06-09.
 
 This file is a handoff document for future AI/code sessions. It describes the current state, important decisions, local setup, deployment assumptions, and known caveats.
 
 ## Project Overview
 
-`devmeme-hub` is a developer-oriented social platform. The app was originally built around Supabase tables/Auth/Storage and is being migrated to a self-hosted Go + PostgreSQL backend.
+`devmeme-hub` is a developer-oriented social platform built on a self-hosted Go + PostgreSQL backend with a React/Vite frontend.
 
 Current direction:
 
 - Frontend: React + Vite SPA.
 - Backend: Go REST API.
-- Database: PostgreSQL, self-contained, no Supabase runtime dependency.
+- Database: PostgreSQL, self-contained, no external BaaS runtime dependency.
 - Production frontend target: GitHub Pages at `https://fluttershy.horsefucker.ru`.
 - Production backend target: separate VPS, recommended API origin `https://api.fluttershy.horsefucker.ru`.
-- Supabase is only legacy/source-of-data now. Do not reintroduce Supabase client code unless explicitly requested.
 
 ## Repository Layout
 
 Important paths:
 
 - `src/` - React frontend.
-- `src/lib/api.ts` - frontend API client for the Go backend. This replaced direct Supabase usage.
+- `src/lib/api.ts` - frontend API client for the Go backend.
 - `src/components/ui/VideoPlayer.tsx` - custom video player with unsupported-codec fallback.
 - `backend/` - Go backend module.
 - `backend/internal/httpapi/` - REST handlers and router.
@@ -30,10 +29,10 @@ Important paths:
 - `backend/cmd/api` - backend server entrypoint.
 - `backend/cmd/migrate` - migration runner.
 - `backend/cmd/import-backup` - imports JSONL backup data into local PostgreSQL.
-- `backend/cmd/export-supabase` - legacy exporter from Supabase to JSONL.
-- `backups/devmeme_supabase_jsonl/` - local JSONL export from Supabase. Ignored by Git.
+- `backups/devmeme_backup_jsonl/` - local JSONL data export. Ignored by Git.
+- `chat-worker/` - Cloudflare Worker that proxies AI chat replies via OpenRouter.
 - `.github/workflows/deploy.yml` - GitHub Pages deployment workflow.
-- `deploy.mjs` - existing deploy helper. It now also supports `--prepare-pages`.
+- `deploy.mjs` - existing deploy helper. It also supports `--prepare-pages`.
 - `docs/deploy-frontend-github-pages.md` - frontend deployment notes.
 
 ## Current Frontend State
@@ -46,8 +45,6 @@ Stack:
 - TanStack Query `5.100.5`
 - TypeScript
 
-Frontend no longer imports `@supabase/supabase-js`; `src/lib/supabase.ts` was deleted.
-
 API flow:
 
 - `src/lib/api.ts` uses `VITE_API_URL`.
@@ -55,15 +52,14 @@ API flow:
 - Production default in GitHub Actions is `https://api.fluttershy.horsefucker.ru`.
 - JWT is stored in `localStorage` under `devmeme_token`.
 - Session shape is defined as `AppSession` in `src/lib/api.ts`.
-- `SessionContext` now holds `AppSession | null`, not Supabase `Session`.
+- `SessionContext` holds `AppSession | null`.
 
 Important frontend behavior:
 
-- Email/password login and registration go through Go backend.
-- OAuth buttons are intentionally not wired to local Go backend yet. They show a local-mode message.
+- Email/password login and registration go through the Go backend.
+- OAuth buttons are intentionally not wired to the Go backend yet. They show a local-mode message.
 - New media uploads call `POST /api/media` on the Go backend.
-- Old imported media URLs may still point to Supabase Storage or the old Worker proxy.
-- Chat messages are stored through Go backend, but AI replies still call `VITE_CHAT_WORKER_URL` via `src/lib/chat.ts` if configured.
+- Chat messages are stored through the Go backend, but AI replies still call `VITE_CHAT_WORKER_URL` via `src/lib/chat.ts` if configured.
 
 Frontend commands:
 
@@ -91,11 +87,11 @@ This is required for GitHub Pages custom domain and React Router fallback.
 Stack:
 
 - Go module: `devmeme-hub/backend`
-- Go `1.24`
+- Go `1.24+`
 - Router: `chi`
 - PostgreSQL driver: `pgx`
-- Auth: HMAC JWT + bcrypt password hashes
-- Runtime is pure PostgreSQL, not Supabase.
+- Auth: HMAC JWT (with issuer/audience) + bcrypt password hashes
+- Runtime is pure PostgreSQL.
 
 Backend local env example: `backend/.env.example`.
 
@@ -166,68 +162,29 @@ Authenticated routes:
 
 ## Database State
 
-Legacy Supabase project:
-
-- Project name: `devmeme`
-- Project ref/id: `noozgghctswdfnicmcnd`
-
-Supabase was used as the source of truth for backup/export. The current backend should not depend on Supabase.
-
 Local PostgreSQL:
 
-- Data dir: `C:\tmp\devmeme_pgdata`
-- Port: `55432`
-- User: `devmeme`
 - Database: `devmeme_hub`
-- Local backend URL:
+- User: `devmeme`
+- Local backend URL (docker-compose default):
 
 ```text
-postgres://devmeme@localhost:55432/devmeme_hub?sslmode=disable
+postgres://devmeme:devmeme@localhost:5432/devmeme_hub?sslmode=disable
 ```
-
-Start local PostgreSQL if needed:
-
-```powershell
-& 'C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe' -D C:\tmp\devmeme_pgdata -l C:\tmp\devmeme_pglog.txt -o '-p 55432' start
-```
-
-Imported local counts after migration/import:
-
-- `users`: 15
-- `profiles`: 15
-- `posts`: 24
-- `comments`: 25
-- `stars`: 30
-- `follows`: 7
-- `tags`: 20
-- `post_tags`: 25
-- `saved_posts`: 11
-- `chat_conversations`: 12
-- `chat_messages`: 66
-- `user_activity`: 0 in backup
 
 Schema decisions:
 
-- `users` is now standalone backend auth.
+- `users` is the standalone backend auth table.
 - `profiles.id` references `users.id`.
-- Public ownership tables still reference `profiles(id)` to preserve legacy Supabase behavior.
+- Public ownership tables reference `profiles(id)`.
 - `posts`, `comments`, `stars`, `follows`, `saved_posts`, and `chat_*` reference `profiles(id)`.
-- Supabase `auth.users.encrypted_password` was imported into `users.password_hash`. Existing Supabase bcrypt hashes are compatible with Go bcrypt login.
-- Legacy constraints were relaxed because old data includes Cyrillic usernames and large content.
+- bcrypt password hashes are stored in `users.password_hash`.
 
-## Supabase Backup Details
+### Seeding from a JSONL backup
 
-Local JSONL backup directory:
-
-```text
-C:\project\devmeme-hub\backups\devmeme_supabase_jsonl
-```
-
-Backup files are ignored by Git and should stay local.
-
-`pg_dump` through Supabase pooler was unreliable. JSONL export was used instead.
-
-Important: the user shared a Supabase database password in a previous session. Do not repeat it, do not commit it, and do not put it in docs.
+`backend/cmd/import-backup` truncates the public tables and loads a local JSONL
+export. The default backup directory is `backups/devmeme_backup_jsonl/`
+(override with `BACKUP_DIR`). Backup files are Git-ignored and should stay local.
 
 ## Deployment
 
@@ -271,7 +228,7 @@ Do not deploy production from local commands unless explicitly requested.
 
 ### Backend: VPS
 
-Backend will be deployed separately to the user's VPS.
+The backend will be deployed separately to the user's VPS.
 
 Recommended public backend URL:
 
@@ -283,7 +240,7 @@ Production backend must use HTTPS. If the frontend is HTTPS and backend is HTTP,
 
 Required production backend env caveats:
 
-- Use a strong `JWT_SECRET` with at least 32 characters.
+- Use a strong, unique `JWT_SECRET` of at least 32 characters (known placeholder values are rejected at startup).
 - Set `DATABASE_URL` to the VPS PostgreSQL URL.
 - Set `ALLOWED_ORIGINS=https://fluttershy.horsefucker.ru`.
 - Set `MEDIA_DIR` to a persistent directory.
@@ -305,9 +262,8 @@ Root `.gitignore` currently ignores:
 
 Important nuance:
 
-- The user says `dist/` is required for their GitHub Pages deployment model.
+- `dist/` is required for the current GitHub Pages deployment model.
 - Do not remove `dist/` from Git unless the user explicitly changes deployment strategy.
-- A previous attempt to run `git rm --cached -- dist assets` failed with `index.lock permission denied`; no files were removed from Git.
 - If touching `.gitignore`, do not blindly ignore `dist/` or root `assets/` without confirming the active deployment model.
 
 ## Known Issues and Caveats
@@ -345,27 +301,27 @@ New uploads currently go to the Go backend via `POST /api/media`, saved under `b
 For VPS production:
 
 - `MEDIA_DIR` must be persistent.
-- Reverse proxy must serve `/media/...` or forward to Go backend.
-- Existing imported media URLs may still point at Supabase Storage or old worker URLs.
+- Reverse proxy must serve `/media/...` or forward to the Go backend.
 
 ### Chat AI
 
 Chat conversations/messages are stored in PostgreSQL through the Go backend.
 
-The AI assistant reply still calls `VITE_CHAT_WORKER_URL` from frontend code in `src/lib/chat.ts`. If unset, AI reply will fail. This is separate from DB chat storage.
+The AI assistant reply still calls `VITE_CHAT_WORKER_URL` from frontend code in `src/lib/chat.ts`. If unset, AI reply will fail. This is separate from DB chat storage. The `chat-worker/` Worker restricts requests by `Origin` and proxies OpenRouter under a server-held key.
 
 ### OAuth
 
 OAuth is not wired to the Go backend yet.
 
-Email/password auth works through the Go backend. OAuth buttons intentionally show a local/backend-not-connected message.
+Email/password auth works through the Go backend. OAuth buttons intentionally show a backend-not-connected message. The `auth_identities` table exists for a future Go-native OAuth implementation.
 
 ## Local Run Checklist
 
-Start PostgreSQL:
+Start PostgreSQL (docker-compose):
 
 ```powershell
-& 'C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe' -D C:\tmp\devmeme_pgdata -l C:\tmp\devmeme_pglog.txt -o '-p 55432' start
+cd C:\project\devmeme-hub\backend
+docker compose up -d
 ```
 
 Start backend:
@@ -417,17 +373,9 @@ cd backend
 go test ./...
 ```
 
-Last known verification status in this session:
-
-- `npm run typecheck` passed.
-- `npm run build` passed after moving Pages preparation into `deploy.mjs --prepare-pages`.
-- `go test ./...` passed.
-
 ## Things Not To Do Without Explicit User Approval
 
 - Do not deploy to production.
 - Do not run `git reset --hard`.
 - Do not remove `dist/` from Git unless deployment strategy is clarified.
 - Do not commit `.env`, database passwords, backups, dumps, logs, or media uploads.
-- Do not re-add Supabase runtime dependencies to frontend unless the user explicitly asks.
-- Do not print or document the previously shared Supabase password.
