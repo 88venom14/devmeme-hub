@@ -1,0 +1,18 @@
+# Reverse proxy with automatic HTTPS (Let's Encrypt) for the API.
+# API_DOMAIN is injected from the environment (e.g. 77.91.95.18.sslip.io).
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	# Proxy everything to the Go backend on the internal compose network.
+	reverse_proxy backend:8080
+
+	# Cap request body size to match the backend's MAX_REQUEST_BYTES (64 MiB).
+	request_body {
+		max_size 64MB
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
