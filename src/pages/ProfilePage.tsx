@@ -23,6 +23,7 @@ const TwitchProfileIcon = () => (
 import { api } from '../lib/api';
 import type { Profile, PostWithMeta } from '../types';
 import PostCard from '../components/feed/PostCard';
+import PostGrid from '../components/feed/PostGrid';
 import { useSessionContext } from '../context/SessionContext';
 
 const ProfilePage: React.FC = () => {
@@ -221,9 +222,9 @@ const ProfilePage: React.FC = () => {
             postsLoading ? (
               <div className="mono text-secondary">ЗАГРУЗКА_ПОСТОВ...</div>
             ) : posts && posts.length > 0 ? (
-              <div className="post-grid">
+              <PostGrid>
                 {posts.map((post) => <PostCard key={post.id} post={post} />)}
-              </div>
+              </PostGrid>
             ) : (
               <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
                 <div className="text-secondary">Постов пока нет.</div>
@@ -232,9 +233,9 @@ const ProfilePage: React.FC = () => {
           ) : likedLoading ? (
             <div className="mono text-secondary">ЗАГРУЗКА_ЛАЙКНУТОГО...</div>
           ) : likedPosts && likedPosts.length > 0 ? (
-            <div className="post-grid">
+            <PostGrid>
               {likedPosts.map((post) => <PostCard key={post.id} post={post} />)}
-            </div>
+            </PostGrid>
           ) : (
             <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
               <div className="text-secondary">Нет лайкнутых постов.</div>

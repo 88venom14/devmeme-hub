@@ -126,19 +126,22 @@
   display: none;
 }
 
+/* Masonry columns are built in JS (components/feed/PostGrid.tsx) so item order
+   reads left-to-right across the top row. Column count is responsive there. */
 .post-grid {
-  column-count: 3;
-  column-gap: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
   width: 100%;
   max-width: 100%;
 }
 
-.post-grid>* {
-  display: inline-block;
-  width: 100%;
-  max-width: 100%;
-  break-inside: avoid;
-  margin-bottom: 12px;
+.post-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .post-grid a {
@@ -153,10 +156,6 @@
 
   .right-sidebar {
     display: none;
-  }
-
-  .post-grid {
-    column-count: 2;
   }
 }
 
@@ -232,10 +231,6 @@
   .mobile-menu-overlay.open {
     opacity: 1;
     pointer-events: auto;
-  }
-
-  .post-grid {
-    column-count: 1;
   }
 }
 

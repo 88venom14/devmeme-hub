@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import PostCard from '../components/feed/PostCard';
+import PostGrid from '../components/feed/PostGrid';
 import Avatar from '../components/Avatar';
 import { useSessionContext } from '../context/SessionContext';
 import { useMyProfile } from '../hooks/useMyProfile';
@@ -180,7 +181,7 @@ const FeedPage: React.FC = memo(() => {
       <FilterBar sort={sort} setSort={setSort} postCount={sortedPosts.length} />
 
       {sortedPosts.length > 0 ? (
-        <div className="post-grid">{postCards}</div>
+        <PostGrid>{postCards}</PostGrid>
       ) : (
         <div style={{
           padding: '60px 20px', textAlign: 'center',

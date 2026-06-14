@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import PostCard from '../components/feed/PostCard';
+import PostGrid from '../components/feed/PostGrid';
 import { useSessionContext } from '../context/SessionContext';
 
 const FollowingPage: React.FC = () => {
@@ -31,7 +32,7 @@ const FollowingPage: React.FC = () => {
       )}
 
       {posts && posts.length > 0 ? (
-        <div className="post-grid">{postCards}</div>
+        <PostGrid>{postCards}</PostGrid>
       ) : !isLoading ? (
         <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
           <div className="text-secondary">

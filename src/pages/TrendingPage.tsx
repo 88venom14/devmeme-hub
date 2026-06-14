@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import PostCard from '../components/feed/PostCard';
+import PostGrid from '../components/feed/PostGrid';
 
 const TrendingPage: React.FC = () => {
   const { data: posts, isLoading, error } = useQuery({
@@ -35,7 +36,7 @@ const TrendingPage: React.FC = () => {
       )}
 
       {ranked.length > 0 ? (
-        <div className="post-grid">{postCards}</div>
+        <PostGrid>{postCards}</PostGrid>
       ) : !isLoading ? (
         <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
           <div className="text-secondary">На этой неделе пока пусто.</div>

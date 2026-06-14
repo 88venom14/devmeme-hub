@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import PostCard from '../components/feed/PostCard';
+import PostGrid from '../components/feed/PostGrid';
 
 const TagPage: React.FC = () => {
   const { name } = useParams<{ name: string }>();
@@ -32,7 +33,7 @@ const TagPage: React.FC = () => {
       )}
 
       {posts && posts.length > 0 ? (
-        <div className="post-grid">{postCards}</div>
+        <PostGrid>{postCards}</PostGrid>
       ) : !isLoading ? (
         <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
           <div className="text-secondary">Постов с этим тегом пока нет.</div>
