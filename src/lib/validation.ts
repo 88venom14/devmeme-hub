@@ -1,6 +1,6 @@
 export const LIMITS = {
   email: 254,
-  password: { min: 8, max: 128 },
+  password: { min: 8, max: 72 },
   username: { min: 2, max: 31 },
   displayName: 60,
   bio: 300,

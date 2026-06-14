@@ -34,8 +34,10 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 	}
 	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
 	req.Username = strings.TrimSpace(strings.ToLower(req.Username))
-	if req.Email == "" || len(req.Password) < 8 || req.Username == "" {
-		writeError(w, http.StatusBadRequest, "email, username and password with at least 8 characters are required")
+	// bcrypt only uses (and accepts) the first 72 bytes, so cap the password
+	// there: longer inputs would otherwise fail hashing with a 500.
+	if req.Email == "" || req.Username == "" || len(req.Password) < 8 || len(req.Password) > 72 {
+		writeError(w, http.StatusBadRequest, "email, username and password (8–72 characters) are required")
 		return
 	}
 
