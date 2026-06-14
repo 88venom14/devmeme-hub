@@ -10,7 +10,6 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke:api": "node scripts/smoke-api.mjs",
     "deploy": "node deploy.mjs"
   },
   "dependencies": {
