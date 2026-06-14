@@ -1,29 +1,37 @@
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useSession } from './hooks/useSession';
+import { SessionContext } from './context/SessionContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
+import './styles/variables.css';
 import './styles/global.css';
 import './styles/layout.css';
 
-import FeedPage from './pages/FeedPage';
-import LoginPage from './pages/LoginPage';
-import ProfilePage from './pages/ProfilePage';
-import CreatePostPage from './pages/CreatePostPage';
-import PostDetailPage from './pages/PostDetailPage';
-import SavedPostsPage from './pages/SavedPostsPage';
-import SettingsPage from './pages/SettingsPage';
-import FollowingPage from './pages/FollowingPage';
-import TrendingPage from './pages/TrendingPage';
-import TagPage from './pages/TagPage';
+const FeedPage = React.lazy(() => import('./pages/FeedPage'));
+const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+const CreatePostPage = React.lazy(() => import('./pages/CreatePostPage'));
+const PostDetailPage = React.lazy(() => import('./pages/PostDetailPage'));
+const SavedPostsPage = React.lazy(() => import('./pages/SavedPostsPage'));
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
+const FollowingPage = React.lazy(() => import('./pages/FollowingPage'));
+const TrendingPage = React.lazy(() => import('./pages/TrendingPage'));
+const TagPage = React.lazy(() => import('./pages/TagPage'));
+const ChatPage = React.lazy(() => import('./pages/ChatPage'));
 
 import AppShell from './components/layout/AppShell';
 
+// Module-level singleton — never recreated across renders
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 10,
       retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     },
   },
 });
@@ -33,40 +41,75 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#000000',
-        color: '#ff6b00',
-      }}>
+      <div
+        style={{
+          height: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#000000',
+          color: '#ff6b00',
+        }}
+      >
         <div className="mono">INITIALIZING_DEVMEME_HUB...</div>
       </div>
     );
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <HashRouter basename="/devmeme">
-        <Routes>
-          <Route path="/login" element={!session ? <LoginPage /> : <Navigate to="/" />} />
+    // SessionContext.Provider wraps everything — one subscription, one source of truth
+    <SessionContext.Provider value={session}>
+      <QueryClientProvider client={queryClient}>
+        <ErrorBoundary>
+        <BrowserRouter>
+          <React.Suspense fallback={
+            <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000', color: '#ff6b00' }}>
+              <div className="mono">LOADING...</div>
+            </div>
+          }>
+          <Routes>
+            <Route
+              path="/login"
+              element={!session ? <LoginPage /> : <Navigate to="/feed" replace />}
+            />
+            <Route path="/" element={<Navigate to="/feed" replace />} />
 
-          <Route element={<AppShell session={session} />}>
-            <Route path="/" element={<FeedPage />} />
-            <Route path="/profile/:id" element={<ProfilePage />} />
-            <Route path="/post/:id" element={<PostDetailPage />} />
-            <Route path="/tag/:name" element={<TagPage />} />
-            <Route path="/trending" element={<TrendingPage />} />
+            <Route element={<AppShell session={session} />}>
+              <Route path="/feed" element={<FeedPage />} />
+              <Route path="/profile/:username" element={<ProfilePage />} />
+              <Route path="/post/:id" element={<PostDetailPage />} />
+              <Route path="/tag/:name" element={<TagPage />} />
+              <Route path="/trending" element={<TrendingPage />} />
 
-            <Route path="/post/new" element={session ? <CreatePostPage /> : <Navigate to="/login" />} />
-            <Route path="/saved" element={session ? <SavedPostsPage /> : <Navigate to="/login" />} />
-            <Route path="/settings" element={session ? <SettingsPage /> : <Navigate to="/login" />} />
-            <Route path="/following" element={session ? <FollowingPage /> : <Navigate to="/login" />} />
-          </Route>
-        </Routes>
-      </HashRouter>
-    </QueryClientProvider>
+              <Route
+                path="/post/new"
+                element={session ? <CreatePostPage /> : <Navigate to="/login" replace />}
+              />
+              <Route
+                path="/saved"
+                element={session ? <SavedPostsPage /> : <Navigate to="/login" replace />}
+              />
+              <Route
+                path="/settings"
+                element={session ? <SettingsPage /> : <Navigate to="/login" replace />}
+              />
+              <Route
+                path="/following"
+                element={session ? <FollowingPage /> : <Navigate to="/login" replace />}
+              />
+              <Route
+                path="/chat"
+                element={session ? <ChatPage /> : <Navigate to="/login" replace />}
+              />
+            </Route>
+
+            <Route path="*" element={<Navigate to="/feed" replace />} />
+          </Routes>
+          </React.Suspense>
+        </BrowserRouter>
+        </ErrorBoundary>
+      </QueryClientProvider>
+    </SessionContext.Provider>
   );
 };
 

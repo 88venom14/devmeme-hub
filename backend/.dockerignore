@@ -1,0 +1,28 @@
+# Secrets and local config (env is injected by compose at runtime)
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+bin/
+*.exe
+*.test
+
+# Runtime uploads and logs (media is a mounted volume in production)
+media/
+*.log
+
+# Go local cache/profiles
+.gocache/
+coverage.out
+*.prof
+
+# Local database/export artifacts
+*.dump
+*.backup
+*.jsonl
+
+# Docker/compose files don't belong in the build context
+Dockerfile
+.dockerignore
+docker-compose*.yml

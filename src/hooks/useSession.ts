@@ -1,22 +1,38 @@
 import { useEffect, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { api, clearToken, getToken, type AppSession } from '../lib/api';
 
 export function useSession() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<AppSession | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+    let cancelled = false;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+    const load = async () => {
+      if (!getToken()) {
+        if (!cancelled) {
+          setSession(null);
+          setLoading(false);
+        }
+        return;
+      }
+      try {
+        const next = await api.me();
+        if (!cancelled) setSession(next);
+      } catch {
+        clearToken();
+        if (!cancelled) setSession(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
 
-    return () => subscription.unsubscribe();
+    load();
+    window.addEventListener('devmeme-auth-changed', load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('devmeme-auth-changed', load);
+    };
   }, []);
 
   return { session, loading };

@@ -1,0 +1,79 @@
+# Production stack: three containers — Caddy (HTTPS) -> Go API backend -> PostgreSQL.
+#
+# Caddy terminates TLS on :443 (and redirects :80 -> :443) and reverse-proxies
+# to the backend over the internal network. It obtains/renews Let's Encrypt
+# certificates automatically for ${API_DOMAIN}.
+#
+# Usage on the server:
+#   cp .env.production.example .env.production   # then fill in real secrets
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: devmeme-hub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-devmeme_hub}
+      POSTGRES_USER: ${POSTGRES_USER:-devmeme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - devmeme_postgres_data:/var/lib/postgresql/data
+    # Database is only reachable on the internal network; no host port published.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-devmeme} -d ${POSTGRES_DB:-devmeme_hub}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: devmeme-hub-backend:latest
+    container_name: devmeme-hub-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HTTP_ADDR: ":8080"
+      DATABASE_URL: postgres://${POSTGRES_USER:-devmeme}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-devmeme_hub}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required (>=32 chars)}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-24h}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      MAX_REQUEST_BYTES: ${MAX_REQUEST_BYTES:-67108864}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-52428800}
+      MEDIA_DIR: /app/media
+    volumes:
+      - devmeme_media_data:/app/media
+    # No host port published; Caddy reaches the backend on the internal network.
+    healthcheck:
+      # GET (not --spider/HEAD): the /healthz route is registered for GET only.
+      test: ["CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: devmeme-hub-caddy
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?API_DOMAIN is required, e.g. 77.91.95.18.sslip.io}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - devmeme_caddy_data:/data
+      - devmeme_caddy_config:/config
+
+volumes:
+  devmeme_postgres_data:
+  devmeme_media_data:
+  devmeme_caddy_data:
+  devmeme_caddy_config:

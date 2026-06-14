@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 const POST_KEYS = new Set([
@@ -13,12 +14,12 @@ const POST_KEYS = new Set([
 
 export function useInvalidatePosts() {
   const queryClient = useQueryClient();
-  return () => {
+  return useCallback(() => {
     queryClient.invalidateQueries({
       predicate: (q) => {
         const k = q.queryKey[0];
         return typeof k === 'string' && POST_KEYS.has(k);
       },
     });
-  };
+  }, [queryClient]);
 }

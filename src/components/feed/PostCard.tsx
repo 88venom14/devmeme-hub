@@ -1,248 +1,478 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { Star, MessageSquare, Share2, Code, ExternalLink, MoreHorizontal, Bookmark } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import React, { memo, useCallback, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Code, ExternalLink, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { supabase } from '../../lib/supabase';
-import type { GithubRepoData, PostWithMeta } from '../../lib/supabase';
-import { useSession } from '../../hooks/useSession';
+import { ru } from 'date-fns/locale';
+import { api } from '../../lib/api';
+import type { GithubRepoData, PostWithMeta } from '../../types';
+import { useSessionContext } from '../../context/SessionContext';
 import { useInvalidatePosts } from '../../hooks/useInvalidatePosts';
+import MarkdownContent from '../MarkdownContent';
+import Avatar from '../Avatar';
+import VideoPlayer from '../ui/VideoPlayer';
 
 interface PostCardProps {
   post: PostWithMeta;
+  mode?: 'feed' | 'detail';
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post }) => {
-  const { session } = useSession();
+/* Thin SVG icon wrappers — stroke-based, no deps */
+const IconHeart = ({ filled }: { filled?: boolean }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 21s-8-5-8-11a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-8 11-8 11h-2z"/>
+  </svg>
+);
+const IconComment = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12a8 8 0 0 1-12 7l-5 1 1-5A8 8 0 1 1 21 12z"/>
+  </svg>
+);
+const IconBookmark = ({ filled }: { filled?: boolean }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 3h12v18l-6-4-6 4z"/>
+  </svg>
+);
+const IconShare = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/>
+    <path d="m8 11 8-4M8 13l8 4"/>
+  </svg>
+);
+const IconStar = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </svg>
+);
+
+interface ActionButtonProps {
+  label?: string | number;
+  active?: boolean;
+  activeColor?: string;
+  onClick?: (e: React.MouseEvent) => void;
+  disabled?: boolean;
+  title?: string;
+  children: React.ReactNode;
+}
+
+const ActionButton = memo(({ label, active, activeColor, onClick, disabled, title, children }: ActionButtonProps) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    title={title}
+    style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '5px 8px',
+      background: 'transparent',
+      border: 'none',
+      borderRadius: 5,
+      color: active ? (activeColor || 'var(--accent)') : 'var(--text-3)',
+      fontSize: 12,
+      fontFamily: 'var(--font-mono)',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled ? 0.5 : 1,
+      transition: 'background 0.12s, color 0.12s',
+    }}
+    onMouseEnter={(e) => { if (!disabled) (e.currentTarget as HTMLElement).style.background = 'var(--bg-2)'; }}
+    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+  >
+    {children}
+    {label != null && <span>{label}</span>}
+  </button>
+));
+ActionButton.displayName = 'ActionButton';
+
+const PostCard: React.FC<PostCardProps> = memo(({ post, mode = 'feed' }) => {
+  const session = useSessionContext();
   const userId = session?.user.id;
   const invalidatePosts = useInvalidatePosts();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [copied, setCopied] = React.useState(false);
+
+  const isDetail = mode === 'detail';
+  const isOwner = !!userId && userId === post.user_id;
 
   const profile = post.profiles;
   const starCount = post.stars?.[0]?.count ?? 0;
   const commentCount = post.comments?.[0]?.count ?? 0;
-  const tags = (post.post_tags ?? [])
-    .map((pt) => pt.tags)
-    .filter((t): t is { id: string; name: string } => !!t);
 
-  const interactionsKey = ['post-interactions', post.id, userId ?? 'anon'];
+  const tags = useMemo(
+    () =>
+      (post.post_tags ?? [])
+        .map((pt) => pt.tags)
+        .filter((t): t is { id: string; name: string } => !!t),
+    [post.post_tags],
+  );
+
+  const interactionsKey = useMemo(
+    () => ['post-interactions', post.id, userId ?? 'anon'],
+    [post.id, userId],
+  );
 
   const { data: interactions } = useQuery({
     queryKey: interactionsKey,
     enabled: !!userId,
-    queryFn: async () => {
-      const [starRes, savedRes] = await Promise.all([
-        supabase
-          .from('stars')
-          .select('id', { head: true, count: 'exact' })
-          .eq('post_id', post.id)
-          .eq('user_id', userId!),
-        supabase
-          .from('saved_posts')
-          .select('id', { head: true, count: 'exact' })
-          .eq('post_id', post.id)
-          .eq('user_id', userId!),
-      ]);
-      return {
-        isStarred: (starRes.count ?? 0) > 0,
-        isSaved: (savedRes.count ?? 0) > 0,
-      };
-    },
+    queryFn: () => api.getPostInteractions(post.id),
   });
 
   const toggleStar = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error('Sign in to star');
       if (interactions?.isStarred) {
-        const { error } = await supabase
-          .from('stars').delete()
-          .eq('post_id', post.id).eq('user_id', userId);
-        if (error) throw error;
+        await api.unstarPost(post.id);
       } else {
-        const { error } = await supabase
-          .from('stars').insert({ post_id: post.id, user_id: userId });
-        if (error) throw error;
+        await api.starPost(post.id);
       }
     },
-    onSuccess: invalidatePosts,
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: interactionsKey });
+      const prev = queryClient.getQueryData<{ isStarred: boolean; isSaved: boolean }>(interactionsKey);
+      queryClient.setQueryData(interactionsKey, { ...prev, isStarred: !prev?.isStarred });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => { queryClient.setQueryData(interactionsKey, ctx?.prev); },
+    onSettled: () => { queryClient.invalidateQueries({ queryKey: interactionsKey }); invalidatePosts(); },
   });
 
   const toggleSave = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error('Sign in to save');
       if (interactions?.isSaved) {
-        const { error } = await supabase
-          .from('saved_posts').delete()
-          .eq('post_id', post.id).eq('user_id', userId);
-        if (error) throw error;
+        await api.unsavePost(post.id);
       } else {
-        const { error } = await supabase
-          .from('saved_posts').insert({ post_id: post.id, user_id: userId });
-        if (error) throw error;
+        await api.savePost(post.id);
       }
     },
-    onSuccess: invalidatePosts,
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: interactionsKey });
+      const prev = queryClient.getQueryData<{ isStarred: boolean; isSaved: boolean }>(interactionsKey);
+      queryClient.setQueryData(interactionsKey, { ...prev, isSaved: !prev?.isSaved });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => { queryClient.setQueryData(interactionsKey, ctx?.prev); },
+    onSettled: () => { queryClient.invalidateQueries({ queryKey: interactionsKey }); invalidatePosts(); },
   });
 
+  const deletePost = useMutation({
+    mutationFn: async () => {
+      await api.deletePost(post.id);
+    },
+    onSuccess: () => { invalidatePosts(); if (isDetail) navigate('/feed'); },
+  });
+
+  const handleShare = useCallback(async () => {
+    const url = `${window.location.origin}/post/${post.id}`;
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* ignore */ }
+  }, [post.id]);
+
+  const handleDelete = useCallback(() => {
+    if (!window.confirm('Удалить пост? Это действие нельзя отменить.')) return;
+    deletePost.mutate();
+  }, [deletePost]);
+
+  const handleToggleStar = useCallback((e: React.MouseEvent) => { e.stopPropagation(); toggleStar.mutate(); }, [toggleStar]);
+  const handleToggleSave = useCallback((e: React.MouseEvent) => { e.stopPropagation(); toggleSave.mutate(); }, [toggleSave]);
+  const handleShareClick = useCallback((e: React.MouseEvent) => { e.stopPropagation(); handleShare(); }, [handleShare]);
+
+  const showImage = !!post.image_url;
+  const showVideo = isDetail ? !!post.video_url : !post.image_url && !!post.video_url;
+
+  const clampStyle = isDetail ? {} : {
+    display: '-webkit-box' as const,
+    WebkitLineClamp: 3,
+    WebkitBoxOrient: 'vertical' as const,
+    overflow: 'hidden',
+  };
+
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ display: 'flex', gap: '12px', minWidth: 0, flex: 1 }}>
-          <Link to={`/profile/${profile?.id}`} style={{ flexShrink: 0 }}>
-            <img
-              src={profile?.avatar_url || `https://api.dicebear.com/7.x/identicon/svg?seed=${profile?.username ?? 'anon'}`}
-              alt={profile?.username ?? 'avatar'}
-              style={{ width: '40px', height: '40px', borderRadius: '4px', backgroundColor: 'var(--bg-main)' }}
-            />
-          </Link>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <Link to={`/profile/${profile?.id}`} style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                {profile?.display_name || profile?.username}
-              </Link>
-              <span className="text-secondary" style={{ fontSize: '13px' }}>@{profile?.username}</span>
-              <span className="text-secondary" style={{ fontSize: '13px' }}>•</span>
-              <span className="text-secondary" style={{ fontSize: '13px' }}>
-                {formatDistanceToNow(new Date(post.created_at))} ago
-              </span>
-            </div>
-            <Link to={`/post/${post.id}`} style={{ color: 'var(--text-primary)' }}>
-              <h2 style={{ fontSize: '18px', marginTop: '4px' }}>{post.title}</h2>
+    <article
+      onClick={() => { if (!isDetail) navigate(`/post/${post.id}`); }}
+      style={{
+        background: 'var(--bg-1)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--card-radius)',
+        padding: 18,
+        display: 'flex', flexDirection: 'column', gap: 12,
+        transition: 'border-color 0.15s',
+        cursor: isDetail ? 'default' : 'pointer',
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
+    >
+      {/* Author row */}
+      <header style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <Link
+          to={`/profile/${profile?.username}`}
+          onClick={(e) => e.stopPropagation()}
+          style={{ flexShrink: 0, textDecoration: 'none', borderRadius: '50%', transition: 'opacity 0.12s' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.8'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+        >
+          <Avatar src={profile?.avatar_url} name={profile?.display_name || profile?.username} size={36} />
+        </Link>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 13 }}>
+            <Link
+              to={`/profile/${profile?.username}`}
+              onClick={(e) => e.stopPropagation()}
+              style={{ fontWeight: 600, color: 'var(--text-1)', textDecoration: 'none', transition: 'color 0.12s' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-1)'; }}
+            >
+              {profile?.display_name || profile?.username}
             </Link>
+            <span style={{ color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+              @{profile?.username}
+            </span>
+          </div>
+          <div style={{ color: 'var(--text-3)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+            {formatDistanceToNow(new Date(post.created_at), { locale: ru })} назад
           </div>
         </div>
-        <button className="btn btn-sm" style={{ border: 'none', background: 'transparent', padding: '4px' }} title="More">
-          <MoreHorizontal size={16} />
-        </button>
-      </div>
+      </header>
 
-      <div style={{ padding: '0 16px 16px 68px' }}>
-        {post.description && (
-          <p style={{ marginBottom: '12px', color: 'var(--text-primary)' }}>{post.description}</p>
-        )}
+      {/* Title */}
+      <Link to={`/post/${post.id}`} onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'none' }}>
+        <h2
+          style={{
+            margin: 0,
+            fontSize: 16, fontWeight: 600, lineHeight: 1.3,
+            color: 'var(--text-1)',
+            ...(isDetail ? {} : {
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical' as const,
+              overflow: 'hidden',
+            }),
+          }}
+        >
+          {post.title}
+        </h2>
+      </Link>
 
-        {post.content_md && (
-          <div style={{ marginBottom: '16px', fontSize: '14px', borderLeft: '2px solid var(--border-color)', paddingLeft: '16px' }}>
-            <ReactMarkdown>{post.content_md}</ReactMarkdown>
-          </div>
-        )}
+      {/* Body */}
+      {post.description && (
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: 'var(--text-2)', ...clampStyle }}>
+          {post.description}
+        </p>
+      )}
 
-        {post.image_url && (
-          <div style={{ marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-            <img src={post.image_url} alt="Post content" style={{ width: '100%', display: 'block' }} />
-          </div>
-        )}
-
-        {post.video_url && (
-          <div style={{ marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-            <video src={post.video_url} controls style={{ width: '100%', display: 'block', backgroundColor: '#000' }} />
-          </div>
-        )}
-
-        {post.github_url && (
-          <GithubRepoPreview url={post.github_url} repoData={post.github_repo_json} />
-        )}
-
-        {tags.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
-            {tags.map((t) => (
-              <Link
-                key={t.id}
-                to={`/tag/${t.name}`}
-                style={{
-                  padding: '3px 10px',
-                  backgroundColor: 'var(--bg-main)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '20px',
-                  fontSize: '12px',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                #{t.name}
-              </Link>
-            ))}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: '24px', marginTop: '16px' }}>
-          <button
-            onClick={() => toggleStar.mutate()}
-            disabled={!userId || toggleStar.isPending}
-            className="btn btn-sm"
-            style={{
-              border: 'none', background: 'transparent', padding: '4px',
-              color: interactions?.isStarred ? 'var(--accent-primary)' : 'var(--text-secondary)',
-            }}
-            title={userId ? (interactions?.isStarred ? 'Unstar' : 'Star') : 'Sign in to star'}
-          >
-            <Star size={18} fill={interactions?.isStarred ? 'currentColor' : 'none'} />
-            <span style={{ marginLeft: '6px' }}>{starCount} Stars</span>
-          </button>
-          <Link to={`/post/${post.id}`} className="btn btn-sm" style={{ border: 'none', background: 'transparent', padding: '4px', color: 'var(--text-secondary)' }}>
-            <MessageSquare size={18} />
-            <span style={{ marginLeft: '6px' }}>{commentCount} Comments</span>
-          </Link>
-          <button
-            onClick={() => toggleSave.mutate()}
-            disabled={!userId || toggleSave.isPending}
-            className="btn btn-sm"
-            style={{
-              border: 'none', background: 'transparent', padding: '4px',
-              color: interactions?.isSaved ? 'var(--accent-primary)' : 'var(--text-secondary)',
-            }}
-            title={userId ? (interactions?.isSaved ? 'Unsave' : 'Save') : 'Sign in to save'}
-          >
-            <Bookmark size={18} fill={interactions?.isSaved ? 'currentColor' : 'none'} />
-          </button>
-          <button
-            onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/post/${post.id}`)}
-            className="btn btn-sm"
-            style={{ border: 'none', background: 'transparent', padding: '4px', color: 'var(--text-secondary)' }}
-            title="Copy link"
-          >
-            <Share2 size={18} />
-          </button>
+      {post.content_md && (
+        <div style={{ fontSize: 13 }} onClick={(e) => { if ((e.target as HTMLElement).closest('a')) e.stopPropagation(); }}>
+          <MarkdownContent clamp={isDetail ? undefined : 3}>{post.content_md}</MarkdownContent>
         </div>
-      </div>
-    </div>
+      )}
+
+      {/* Media */}
+      {showImage && (
+        <div style={{
+          borderRadius: 8, overflow: 'hidden',
+          border: '1px solid var(--border)',
+          backgroundColor: 'var(--bg-2)',
+          textAlign: 'center',
+        }}>
+          <img
+            src={post.image_url!}
+            alt="Post media"
+            style={{
+              maxWidth: '100%',
+              maxHeight: isDetail ? '480px' : '280px',
+              objectFit: 'contain',
+              display: 'block', margin: '0 auto',
+            }}
+          />
+        </div>
+      )}
+
+      {showVideo && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <VideoPlayer src={post.video_url!} maxHeight={isDetail ? 480 : 280} />
+        </div>
+      )}
+
+      {post.github_url && (
+        <GithubRepoPreview url={post.github_url} repoData={post.github_repo_json} />
+      )}
+
+      {/* Tags */}
+      {tags.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {tags.map((t) => (
+            <Link
+              key={t.id}
+              to={`/tag/${t.name}`}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'transparent', border: 'none',
+                color: 'var(--text-3)', fontSize: 11,
+                fontFamily: 'var(--font-mono)',
+                cursor: 'pointer', textDecoration: 'none',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-3)'; }}
+            >
+              #{t.name}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Action bar */}
+      <footer style={{
+        display: 'flex', alignItems: 'center', gap: 4,
+        paddingTop: 4,
+        borderTop: '1px solid var(--border)',
+        marginTop: 'auto',
+      }}>
+        <ActionButton
+          label={starCount}
+          active={interactions?.isStarred}
+          activeColor="oklch(0.65 0.22 25)"
+          onClick={handleToggleStar}
+          disabled={!userId || toggleStar.isPending}
+          title={userId ? (interactions?.isStarred ? 'Убрать лайк' : 'Лайк') : 'Войдите, чтобы оценить'}
+        >
+          <IconHeart filled={interactions?.isStarred} />
+        </ActionButton>
+
+        <Link
+          to={`/post/${post.id}`}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            padding: '5px 8px', borderRadius: 5,
+            color: 'var(--text-3)', fontSize: 12, fontFamily: 'var(--font-mono)',
+            textDecoration: 'none', transition: 'background 0.12s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-2)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+        >
+          <IconComment />
+          <span>{commentCount}</span>
+        </Link>
+
+        <ActionButton
+          active={interactions?.isSaved}
+          activeColor="var(--accent)"
+          onClick={handleToggleSave}
+          disabled={!userId || toggleSave.isPending}
+          title={userId ? (interactions?.isSaved ? 'Убрать из сохранённых' : 'Сохранить') : 'Войдите, чтобы сохранить'}
+        >
+          <IconBookmark filled={interactions?.isSaved} />
+        </ActionButton>
+
+        <div style={{ flex: 1 }} />
+
+        <div style={{ position: 'relative' }}>
+          <ActionButton onClick={handleShareClick} title="Копировать ссылку">
+            <IconShare />
+          </ActionButton>
+          {copied && (
+            <div style={{
+              position: 'absolute', right: 0, bottom: '100%', marginBottom: 6,
+              background: 'var(--bg-3)', color: 'var(--text-1)',
+              padding: '5px 9px', borderRadius: 5,
+              fontSize: 11, fontFamily: 'var(--font-mono)',
+              whiteSpace: 'nowrap',
+              border: '1px solid var(--border)',
+              animation: 'fadeIn 0.15s ease-out',
+              zIndex: 10,
+            }}>
+              ссылка скопирована
+            </div>
+          )}
+        </div>
+
+        {isOwner && (
+          <button
+            onClick={(e) => { e.stopPropagation(); handleDelete(); }}
+            disabled={deletePost.isPending}
+            style={{
+              display: 'inline-flex', alignItems: 'center',
+              padding: '5px 8px', borderRadius: 5,
+              background: 'transparent', border: 'none',
+              color: 'oklch(0.65 0.2 25)',
+              cursor: deletePost.isPending ? 'not-allowed' : 'pointer',
+              opacity: deletePost.isPending ? 0.5 : 1,
+              transition: 'background 0.12s',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'oklch(0.65 0.2 25 / 0.1)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            title="Удалить пост"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </footer>
+    </article>
   );
-};
+});
 
-const GithubRepoPreview = ({ url, repoData }: { url: string, repoData: GithubRepoData | null }) => (
-  <div className="card" style={{ padding: '12px', backgroundColor: 'var(--bg-main)', borderStyle: 'dashed' }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Code size={16} />
-        <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 'bold', fontSize: '14px' }} className="mono">
-          {url.replace('https://github.com/', '')}
-        </a>
-      </div>
-      <ExternalLink size={14} className="text-secondary" />
-    </div>
-    {repoData && (
-      <>
-        {repoData.description && (
-          <p style={{ fontSize: '13px', margin: '8px 0', color: 'var(--text-secondary)' }}>
-            {repoData.description}
-          </p>
-        )}
-        <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
-          {repoData.language && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent-primary)' }}></span>
-              <span>{repoData.language}</span>
-            </div>
-          )}
-          {typeof repoData.stargazers_count === 'number' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Star size={12} />
-              <span>{repoData.stargazers_count}</span>
-            </div>
-          )}
+PostCard.displayName = 'PostCard';
+
+const GithubRepoPreview = memo(
+  ({ url, repoData }: { url: string; repoData: GithubRepoData | null }) => (
+    <div style={{
+      background: 'var(--bg-2)', border: '1px solid var(--border)',
+      borderRadius: 8, padding: 12,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Code size={14} style={{ color: 'var(--text-3)' }} />
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontWeight: 600, fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-1)' }}
+          >
+            {url.replace('https://github.com/', '')}
+          </a>
         </div>
-      </>
-    )}
-  </div>
+        <ExternalLink size={13} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+      </div>
+      {repoData && (
+        <>
+          {repoData.description && (
+            <p style={{ fontSize: 12, margin: '6px 0 0', color: 'var(--text-2)' }}>
+              {repoData.description}
+            </p>
+          )}
+          <div style={{ display: 'flex', gap: 14, fontSize: 11, marginTop: 8, fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>
+            {repoData.language && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'var(--accent)', display: 'inline-block' }} />
+                {repoData.language}
+              </div>
+            )}
+            {typeof repoData.stargazers_count === 'number' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <IconStar />
+                {repoData.stargazers_count}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  ),
 );
+
+GithubRepoPreview.displayName = 'GithubRepoPreview';
 
 export default PostCard;

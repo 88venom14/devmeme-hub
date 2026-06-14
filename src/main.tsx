@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import "./index.css";
+import "@fontsource/cascadia-code/400.css";
+import "@fontsource/cascadia-code/600.css";
+import "@fontsource/cascadia-code/700.css";
 import App from "./App";
 
 createRoot(document.getElementById("root")!).render(
