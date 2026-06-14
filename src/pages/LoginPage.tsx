@@ -18,6 +18,20 @@ const GoogleIcon = () => (
   </svg>
 );
 
+const EyeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
+
 type Mode = 'signin' | 'signup';
 type Provider = 'github' | 'google';
 
@@ -57,6 +71,7 @@ const LoginPage: React.FC = () => {
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: 'error' | 'info'; text: string } | null>(() => {
@@ -81,7 +96,9 @@ const LoginPage: React.FC = () => {
       setMessage({ kind: 'error', text: `Email не может превышать ${LIMITS.email} символов` });
       return;
     }
-    if (password.length < LIMITS.password.min) {
+    // Only enforce the minimum length when creating an account. Existing users
+    // may have shorter legacy passwords and must still be able to sign in.
+    if (mode === 'signup' && password.length < LIMITS.password.min) {
       setMessage({ kind: 'error', text: `Пароль: минимум ${LIMITS.password.min} символов` });
       return;
     }
@@ -205,17 +222,36 @@ const LoginPage: React.FC = () => {
             <label style={{ display: 'block', marginBottom: 5, fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Пароль
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value.slice(0, LIMITS.password.max))}
-              placeholder="••••••••"
-              style={{ width: '100%' }}
-              required
-              minLength={LIMITS.password.min}
-              maxLength={LIMITS.password.max}
-              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value.slice(0, LIMITS.password.max))}
+                placeholder="••••••••"
+                style={{ width: '100%', paddingRight: 40 }}
+                required
+                minLength={mode === 'signup' ? LIMITS.password.min : undefined}
+                maxLength={LIMITS.password.max}
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                title={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                style={{
+                  position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 28, height: 28, padding: 0,
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-3)', transition: 'color 0.15s',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-1)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-3)'; }}
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
           </div>
 
           {message && (
