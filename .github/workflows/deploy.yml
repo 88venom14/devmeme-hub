@@ -40,8 +40,8 @@ jobs:
         env:
           # Backend API origin. Override with an Actions repo variable VITE_API_URL
           # if the backend moves (e.g. a real api.* subdomain). Default points at
-          # the deployed Go backend served over HTTPS via sslip.io.
-          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://77.91.95.18.sslip.io' }}
+          # the deployed Go backend served over HTTPS on its friendly domain.
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://ado.404.mn' }}
           VITE_CHAT_WORKER_URL: ${{ vars.VITE_CHAT_WORKER_URL || '' }}
         run: npm run build
 

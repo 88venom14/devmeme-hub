@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -59,8 +60,13 @@ func (s *Server) createComment(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
+	req.Text = strings.TrimSpace(req.Text)
 	if req.PostID == "" || req.Text == "" {
 		writeError(w, http.StatusBadRequest, "post_id and text are required")
+		return
+	}
+	if len(req.Text) > 5000 {
+		writeError(w, http.StatusBadRequest, "comment must be at most 5000 characters")
 		return
 	}
 

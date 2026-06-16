@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -36,14 +37,22 @@ func (s *Server) Routes() http.Handler {
 		MaxAge:           300,
 	}))
 	r.Use(s.limitBody)
+	// Global per-IP rate limit (defense-in-depth against scraping/abuse). The
+	// client IP comes from middleware.RealIP (X-Forwarded-For set by Caddy).
+	r.Use(httprate.LimitByIP(120, time.Minute))
 
 	r.Get("/healthz", s.health)
 	mediaServer := http.StripPrefix("/media/", http.FileServer(http.Dir(s.cfg.MediaDir)))
 	r.Handle("/media/*", noSniff(mediaServer))
 
 	r.Route("/api", func(r chi.Router) {
-		r.Post("/auth/register", s.register)
-		r.Post("/auth/login", s.login)
+		// Stricter limit on auth endpoints to blunt credential brute-force and
+		// mass account creation: 10 attempts per minute per IP.
+		r.Group(func(r chi.Router) {
+			r.Use(httprate.LimitByIP(10, time.Minute))
+			r.Post("/auth/register", s.register)
+			r.Post("/auth/login", s.login)
+		})
 
 		r.Group(func(r chi.Router) {
 			r.Use(s.requireUser)

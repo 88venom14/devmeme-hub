@@ -3,10 +3,48 @@
 {$API_DOMAIN} {
 	encode zstd gzip
 
+	# Security response headers applied to every API response.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Cross-Origin-Resource-Policy "same-site"
+		# Don't advertise the server software.
+		-Server
+	}
+
 	# Proxy everything to the Go backend on the internal compose network.
 	reverse_proxy backend:8080
 
 	# Cap request body size to match the backend's MAX_REQUEST_BYTES (64 MiB).
+	request_body {
+		max_size 64MB
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
+
+# Friendly domain for the same API (DNS A record -> this server). Caddy
+# auto-provisions a Let's Encrypt cert. The sslip.io host above is kept so
+# existing media URLs stored in the DB keep resolving.
+ado.404.mn {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Cross-Origin-Resource-Policy "same-site"
+		-Server
+	}
+
+	reverse_proxy backend:8080
+
 	request_body {
 		max_size 64MB
 	}
