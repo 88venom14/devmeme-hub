@@ -17,8 +17,10 @@
 ## Стек
 
 **Frontend** — React 19, TypeScript, Vite, React Router, TanStack Query.
-**Backend** — Go REST API на PostgreSQL (собственный сервис, без Supabase),
+
+**Backend** — Go REST API на PostgreSQL,
 JWT-авторизация, загрузка медиа.
+
 **Chat** — Cloudflare Worker, проксирующий запросы к OpenRouter (ИИ-собеседник).
 
 ## Структура
