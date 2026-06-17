@@ -1,30 +1,31 @@
 # DevMeme Hub
 
-DevMeme Hub — это веб-приложение для просмотра и управления мемами для разработчиков.
+Соцсеть для разработчиков: лента мемов и постов с тегами, звёздами,
+комментариями, подписками, сохранёнными постами и ИИ-чатом.
 
-## Description
+🔗 **Сайт:** https://fluttershy.horsefucker.ru
 
-DevMeme Hub позволяет хранить и отображать мемы.  
-Данные хранятся в базе Supabase.  
-Интерфейс реализован на React с использованием Vite.
+## Возможности
 
-## Tech Stack
+- Лента, тренды и страницы по тегам
+- Создание постов с медиа и Markdown
+- Звёзды, комментарии, сохранённые посты
+- Подписки и лента подписок
+- Профили и настройки пользователя
+- ИИ-чат
 
-- React
-- TypeScript
-- Vite
-- TailwindCSS
-- Supabase
-- React Router
-- React Query
+## Стек
 
-## Installation
+**Frontend** — React 19, TypeScript, Vite, React Router, TanStack Query.
+**Backend** — Go REST API на PostgreSQL (собственный сервис, без Supabase),
+JWT-авторизация, загрузка медиа.
+**Chat** — Cloudflare Worker, проксирующий запросы к OpenRouter (ИИ-собеседник).
 
-Клонировать репозиторий:
+## Структура
 
-```bash
-git clone https://github.com/88venom14/devmeme-hub.git
-cd devmeme-hub
 ```
-## Ссылка на сайт
-[САЙТ](https://fluttershy.horsefucker.ru/)
+src/          — фронтенд: pages/, components/, hooks/, lib/, styles/
+backend/      — Go API: cmd/ (api, migrate, import-backup), internal/
+              — миграции в internal/migrations/sql/
+chat-worker/  — Cloudflare Worker (ИИ-чат через OpenRouter)
+```
