@@ -14,6 +14,11 @@
 		-Server
 	}
 
+	# Cache media for an hour, but with explicit semantics so response-header
+	# changes propagate instead of getting stuck in browsers' heuristic cache
+	# (which previously masked the CORP fix and kept videos blocked).
+	header /media/* Cache-Control "public, max-age=3600"
+
 	# Proxy everything to the Go backend on the internal compose network.
 	reverse_proxy backend:8080
 
@@ -42,6 +47,8 @@ ado.404.mn {
 		Cross-Origin-Resource-Policy "cross-origin"
 		-Server
 	}
+
+	header /media/* Cache-Control "public, max-age=3600"
 
 	reverse_proxy backend:8080
 
