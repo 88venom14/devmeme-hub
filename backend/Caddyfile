@@ -9,7 +9,7 @@
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		Cross-Origin-Resource-Policy "same-site"
+		Cross-Origin-Resource-Policy "cross-origin"
 		# Don't advertise the server software.
 		-Server
 	}
@@ -39,7 +39,7 @@ ado.404.mn {
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		Cross-Origin-Resource-Policy "same-site"
+		Cross-Origin-Resource-Policy "cross-origin"
 		-Server
 	}
 
