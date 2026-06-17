@@ -70,9 +70,8 @@ volumes and the database + media appear lost.
 ## Rollback
 
 - **Code:** `cd /opt/devmeme-hub && git checkout <previous-commit> && ./backend/deploy.sh`
-  (then `git checkout main` afterwards). Data volumes are untouched by a code rollback.
-- **Emergency fallback:** the previous file-copy deploy is preserved at `/opt/devmeme`:
-  `cd /opt/devmeme && COMPOSE_PROJECT_NAME=devmeme docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build`
+  (then `git checkout main` afterwards). Data volumes are untouched by a code rollback,
+  so this is safe to do at any time.
 - **Database:** auto-migrations are forward-only. `.down.sql` files exist but are not
   run automatically; revert schema changes manually if ever needed.
 
