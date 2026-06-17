@@ -152,7 +152,7 @@ const SearchBar: React.FC = memo(() => {
         color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 10,
         padding: '2px 5px', border: '1px solid var(--border)', borderRadius: 3,
         pointerEvents: 'none',
-      }}>⌘K</div>
+      }}>Enter</div>
 
       {open && debounced.length > 0 && (
         <ul
