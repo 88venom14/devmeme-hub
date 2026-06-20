@@ -31,3 +31,5 @@ backend/      — Go API: cmd/ (api, migrate, import-backup), internal/
               — миграции в internal/migrations/sql/
 chat-worker/  — Cloudflare Worker (ИИ-чат через OpenRouter)
 ```
+
+https://drive.google.com/file/d/1T9m6ddQ7AcFzkUmuJsb2V516t_U0HcR6/view?usp=drivesdk
