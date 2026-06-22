@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ShieldCheck } from 'lucide-react';
 import { useAdminGames } from '../hooks/useGames';
 import ModerationQueue from '../components/games/ModerationQueue';
+import AdminNav from '../components/admin/AdminNav';
 import type { GameStatus } from '../types';
 
 type Filter = GameStatus | 'all';
@@ -22,11 +22,9 @@ const AdminGamesPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 820, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <ShieldCheck size={24} style={{ color: 'var(--accent)' }} /> Модерация игр
-      </h1>
+      <AdminNav />
 
-      {/* Filter tabs */}
+      {/* Status filter tabs */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         {FILTERS.map((f) => {
           const active = filter === f.value;

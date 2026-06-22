@@ -378,6 +378,18 @@ export const api = {
     return request<GameModerationLogEntry[]>(`/api/admin/games/${encodeURIComponent(slug)}/moderation-log`);
   },
 
+  // ── Admin: post moderation ──
+  async adminListPosts(params: { limit?: number; q?: string } = {}) {
+    const search = new URLSearchParams();
+    search.set('limit', String(params.limit ?? 100));
+    if (params.q) search.set('q', params.q);
+    return (await request<ApiPost[]>(`/api/admin/posts?${search.toString()}`)).map(adaptPost);
+  },
+
+  adminDeletePost(id: string) {
+    return request<void>(`/api/admin/posts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
   listConversations() {
     return request<import('../hooks/useChat').ChatConversation[]>('/api/chat/conversations');
   },

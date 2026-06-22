@@ -205,9 +205,9 @@ const AppShell: React.FC<AppShellProps> = () => {
               Мои игры
             </Link>
             {session.user.role === 'admin' && (
-              <Link to="/admin/games" className={`sub-nav-link${isActive('/admin') ? ' active' : ''}`}>
+              <Link to="/admin" className={`sub-nav-link${isActive('/admin') ? ' active' : ''}`}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
-                Модерация игр
+                Админ-панель
               </Link>
             )}
             <Link to="/chat" className={`sub-nav-link${isActive('/chat') ? ' active' : ''}`}>
@@ -267,9 +267,9 @@ const UserCard = memo(({ myProfile, location, isAdmin }: { myProfile: MyProfile;
     },
     ...(isAdmin
       ? [{
-          to: '/admin/games',
+          to: '/admin',
           icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>,
-          label: 'Модерация игр',
+          label: 'Админ-панель',
         }]
       : []),
   ];

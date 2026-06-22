@@ -25,6 +25,7 @@ const GamePlayPage = React.lazy(() => import('./pages/GamePlayPage'));
 const GameUploadPage = React.lazy(() => import('./pages/GameUploadPage'));
 const MyGamesPage = React.lazy(() => import('./pages/MyGamesPage'));
 const AdminGamesPage = React.lazy(() => import('./pages/AdminGamesPage'));
+const AdminPostsPage = React.lazy(() => import('./pages/AdminPostsPage'));
 
 import AppShell from './components/layout/AppShell';
 import AdminRoute from './components/AdminRoute';
@@ -98,7 +99,11 @@ const App: React.FC = () => {
                 path="/me/games"
                 element={session ? <MyGamesPage /> : <Navigate to="/login" replace />}
               />
-              <Route path="/admin" element={<Navigate to="/admin/games" replace />} />
+              <Route path="/admin" element={<Navigate to="/admin/posts" replace />} />
+              <Route
+                path="/admin/posts"
+                element={<AdminRoute><AdminPostsPage /></AdminRoute>}
+              />
               <Route
                 path="/admin/games"
                 element={<AdminRoute><AdminGamesPage /></AdminRoute>}

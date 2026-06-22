@@ -108,6 +108,10 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/admin/games/{slug}/reject", s.adminRejectGame)
 			r.Post("/admin/games/{slug}/remove", s.adminRemoveGame)
 			r.Get("/admin/games/{slug}/moderation-log", s.adminGameLog)
+
+			// Post moderation.
+			r.Get("/admin/posts", s.adminListPosts)
+			r.Delete("/admin/posts/{postID}", s.adminDeletePost)
 		})
 
 		r.Get("/posts", s.listPosts)
