@@ -41,9 +41,11 @@ func newTestServer(t *testing.T) *httptest.Server {
 		JWTSecret:       "integration-test-secret-at-least-32-chars",
 		AccessTokenTTL:  time.Hour,
 		AllowedOrigins:  []string{"http://localhost:5173"},
-		MaxRequestBytes: 8 << 20,
-		MaxUploadBytes:  8 << 20,
-		MediaDir:        t.TempDir(),
+		MaxRequestBytes:    8 << 20,
+		MaxUploadBytes:     8 << 20,
+		MediaDir:           t.TempDir(),
+		GamesDir:           t.TempDir(),
+		MaxGameUploadBytes: 8 << 20,
 	}
 	srv := httptest.NewServer(httpapi.NewServer(cfg, pool).Routes())
 	t.Cleanup(srv.Close)

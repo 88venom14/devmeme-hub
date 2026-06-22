@@ -82,11 +82,88 @@ Migrations create the required tables automatically:
 - `users`, `profiles`, `posts`, `comments`, `stars`, `follows`
 - `tags`, `post_tags`, `saved_posts`, `user_activity`
 - `chat_conversations`, `chat_messages`
+- `games`, `game_tags`, `game_moderation_log`
 
 `profiles(id)` is the public owner identity.
 Content tables such as `posts`, `comments`, `stars`, `follows`, `saved_posts`, and
 chat tables reference `profiles(id)`. The standalone `users` table stores backend
 auth data, and `profiles.id` references `users.id`.
+
+## Mini-games
+
+Authenticated users upload self-contained web games (a `.zip` with a root
+`index.html` plus static assets). Uploads enter a moderation queue; only
+admin-approved games are publicly playable.
+
+### Storage layout
+
+- Extracted bundles live under `GAMES_DIR` (default `games/`, configurable via the
+  `GAMES_DIR` env var; persist it on a volume in production alongside media).
+- Each game gets its own directory keyed by its unique slug: `games/<slug>/…`,
+  with the entry point at `games/<slug>/index.html`.
+- Files are served read-only at `GET /games-static/<slug>/*`. The handler confines
+  every request to the game's own directory and sets isolation headers (a strict
+  CSP with `connect-src 'none'` and `frame-ancestors` limited to the app origins,
+  plus `X-Content-Type-Options: nosniff`).
+- Upload limits: archive ≤ 25 MB (`MAX_GAME_UPLOAD_BYTES`), total extracted size
+  ≤ 100 MB. Only an allowlist of asset extensions is accepted; zip-slip, absolute
+  paths, and symlinks are rejected; a root `index.html` is required.
+- When a game is removed (admin takedown) or deleted (by its author), its files are
+  deleted from disk so it can no longer be served, even by direct URL. The DB row
+  and its moderation log are retained for a takedown (status `removed`).
+
+### Moderation lifecycle
+
+```
+upload ─► pending ─► approved   (publicly listed & playable)
+                 └─► rejected   (author sees the reason, can edit & resubmit)
+approved ─► removed             (admin takedown; files deleted)
+rejected/approved ─► pending    (author edits → resubmitted)
+```
+
+Every status change is written together with a `game_moderation_log` row in the
+same DB transaction, so the audit trail (who, action, reason, when) can never drift
+from the game's actual status.
+
+### Granting admin
+
+Admin capability reuses the existing `users.role` column. Promote a user with:
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'you@example.com';
+```
+
+Admin endpoints (`/api/admin/games/*`) are guarded by `requireAdmin`, which
+re-checks the role from the DB on every request — UI gating is never trusted, and a
+demoted user immediately loses access even with an unexpired token.
+
+### Recommended hardening: separate origin
+
+Games currently run in a sandboxed `<iframe>` **without** `allow-same-origin`,
+which already forces each game into a unique opaque origin (no access to the app's
+cookies, `localStorage`, or JWT). For defense in depth, serve `/games-static/`
+from a **dedicated subdomain** (e.g. `games.example.com`) so a game can never share
+an origin with the main app even if a sandbox flag regresses. Point that subdomain
+at the same backend (or a CDN in front of `GAMES_DIR`) and set `frame-ancestors`
+accordingly. The `GameFrame` React component is the single client-side source of
+truth for the sandbox attributes.
+
+### Game routes
+
+- `GET    /api/games` — list approved games (supports `?q=` and `?tag=`).
+- `GET    /api/games/{slug}` — approved game metadata (author may fetch their own).
+- `POST   /api/games/{slug}/play` — increment play count.
+- `POST   /api/games` — multipart upload (`archive`, `title`, `description`, `tags`,
+  `thumbnail_url`); creates a `pending` game.
+- `GET    /api/me/games` — the caller's own submissions and their statuses.
+- `PUT    /api/games/{slug}` — edit metadata / re-upload archive (resets to pending).
+- `DELETE /api/games/{slug}` — author removes their own game.
+- `GET    /api/admin/games?status=pending` — admin queue with status counts.
+- `POST   /api/admin/games/{slug}/approve`
+- `POST   /api/admin/games/{slug}/reject` — body `{ "reason": "…" }` (required).
+- `POST   /api/admin/games/{slug}/remove` — takedown (optional reason).
+- `GET    /api/admin/games/{slug}/moderation-log`
+- `GET    /games-static/{slug}/*` — sandboxed static game assets.
 
 ## Main routes
 

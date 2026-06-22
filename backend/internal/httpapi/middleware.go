@@ -53,6 +53,27 @@ func (s *Server) optionalUser(next http.Handler) http.Handler {
 	})
 }
 
+// requireAdmin must be chained after requireUser. It confirms the current user
+// still has the 'admin' role with a fresh DB lookup on every request, so a
+// demoted user cannot keep acting as admin with an already-issued token (the
+// JWT itself carries no role claim). UI gating is never trusted on its own.
+func (s *Server) requireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, ok := userFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "missing bearer token")
+			return
+		}
+		var role string
+		err := s.db.QueryRow(r.Context(), `SELECT role FROM users WHERE id = $1`, user.ID).Scan(&role)
+		if err != nil || role != "admin" {
+			writeError(w, http.StatusForbidden, "admin access required")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func userFromContext(ctx context.Context) (currentUser, bool) {
 	user, ok := ctx.Value(userContextKey{}).(currentUser)
 	return user, ok

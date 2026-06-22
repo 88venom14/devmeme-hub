@@ -45,6 +45,15 @@ func (s *Server) Routes() http.Handler {
 	mediaServer := http.StripPrefix("/media/", http.FileServer(http.Dir(s.cfg.MediaDir)))
 	r.Handle("/media/*", noSniff(mediaServer))
 
+	// Sandboxed static serving for user-uploaded mini-games. These files are
+	// untrusted; the handler confines access to each game's directory and sets
+	// the isolation headers (CSP, nosniff). See game_static.go and the README's
+	// separate-origin hardening note.
+	r.Get("/games-static/{slug}/*", s.serveGameStatic)
+	// HEAD is handled by http.ServeContent (headers only); support it for
+	// CDNs/tools that probe assets before fetching.
+	r.Head("/games-static/{slug}/*", s.serveGameStatic)
+
 	r.Route("/api", func(r chi.Router) {
 		// Stricter limit on auth endpoints to blunt credential brute-force and
 		// mass account creation: 10 attempts per minute per IP.
@@ -81,11 +90,33 @@ func (s *Server) Routes() http.Handler {
 			r.Delete("/chat/conversations/{conversationID}", s.deleteChatConversation)
 			r.Get("/chat/conversations/{conversationID}/messages", s.listChatMessages)
 			r.Post("/chat/conversations/{conversationID}/messages", s.createChatMessage)
+
+			// Mini-games — author actions.
+			r.Post("/games", s.createGame)
+			r.Get("/me/games", s.listMyGames)
+			r.Put("/games/{slug}", s.updateGame)
+			r.Delete("/games/{slug}", s.deleteGame)
+		})
+
+		// Mini-games — admin moderation. Admin is confirmed by a fresh DB role
+		// lookup in requireAdmin, independent of any client-side gating.
+		r.Group(func(r chi.Router) {
+			r.Use(s.requireUser)
+			r.Use(s.requireAdmin)
+			r.Get("/admin/games", s.adminListGames)
+			r.Post("/admin/games/{slug}/approve", s.adminApproveGame)
+			r.Post("/admin/games/{slug}/reject", s.adminRejectGame)
+			r.Post("/admin/games/{slug}/remove", s.adminRemoveGame)
+			r.Get("/admin/games/{slug}/moderation-log", s.adminGameLog)
 		})
 
 		r.Get("/posts", s.listPosts)
 		r.Get("/posts/{postID}", s.getPost)
 		r.Get("/posts/{postID}/comments", s.listComments)
+
+		// Mini-games — public reads. listGames returns approved games only.
+		r.Get("/games", s.listGames)
+		r.Post("/games/{slug}/play", s.playGame)
 
 		// Profile reads adjust to the viewer (followers-only privacy), so they
 		// use optional auth: a token is honored if present, not required.
@@ -96,6 +127,9 @@ func (s *Server) Routes() http.Handler {
 			r.Get("/profiles/{profileID}/posts", s.listProfilePosts)
 			r.Get("/profiles/{profileID}/liked", s.listProfileLikedPosts)
 			r.Get("/profiles/{profileID}/stats", s.getProfileStats)
+			// Approved games are public; the author may also fetch their own
+			// pending submission, so this read uses optional auth.
+			r.Get("/games/{slug}", s.getGame)
 		})
 
 		r.Get("/search", s.search)

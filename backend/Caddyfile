@@ -19,6 +19,11 @@
 	# (which previously masked the CORP fix and kept videos blocked).
 	header /media/* Cache-Control "public, max-age=3600"
 
+	# Mini-game bundles are meant to be embedded in our own app's iframe. The
+	# blanket X-Frame-Options: DENY above would block that, so drop it for the
+	# games-static path and let the backend's CSP frame-ancestors govern framing.
+	header /games-static/* -X-Frame-Options
+
 	# Proxy everything to the Go backend on the internal compose network.
 	reverse_proxy backend:8080
 
@@ -49,6 +54,9 @@ ado.404.mn {
 	}
 
 	header /media/* Cache-Control "public, max-age=3600"
+
+	# See the games-static note above: allow our own app to frame game bundles.
+	header /games-static/* -X-Frame-Options
 
 	reverse_proxy backend:8080
 

@@ -20,8 +20,14 @@ const FollowingPage = React.lazy(() => import('./pages/FollowingPage'));
 const TrendingPage = React.lazy(() => import('./pages/TrendingPage'));
 const TagPage = React.lazy(() => import('./pages/TagPage'));
 const ChatPage = React.lazy(() => import('./pages/ChatPage'));
+const GamesPage = React.lazy(() => import('./pages/GamesPage'));
+const GamePlayPage = React.lazy(() => import('./pages/GamePlayPage'));
+const GameUploadPage = React.lazy(() => import('./pages/GameUploadPage'));
+const MyGamesPage = React.lazy(() => import('./pages/MyGamesPage'));
+const AdminGamesPage = React.lazy(() => import('./pages/AdminGamesPage'));
 
 import AppShell from './components/layout/AppShell';
+import AdminRoute from './components/AdminRoute';
 
 // Module-level singleton — never recreated across renders
 const queryClient = new QueryClient({
@@ -80,6 +86,23 @@ const App: React.FC = () => {
               <Route path="/post/:id" element={<PostDetailPage />} />
               <Route path="/tag/:name" element={<TagPage />} />
               <Route path="/trending" element={<TrendingPage />} />
+
+              {/* Mini-games */}
+              <Route path="/games" element={<GamesPage />} />
+              <Route
+                path="/games/upload"
+                element={session ? <GameUploadPage /> : <Navigate to="/login" replace />}
+              />
+              <Route path="/games/:slug" element={<GamePlayPage />} />
+              <Route
+                path="/me/games"
+                element={session ? <MyGamesPage /> : <Navigate to="/login" replace />}
+              />
+              <Route path="/admin" element={<Navigate to="/admin/games" replace />} />
+              <Route
+                path="/admin/games"
+                element={<AdminRoute><AdminGamesPage /></AdminRoute>}
+              />
 
               <Route
                 path="/post/new"

@@ -132,6 +132,10 @@ const AppShell: React.FC<AppShellProps> = () => {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="6" rx="1.5" /><rect x="3" y="14" width="18" height="6" rx="1.5" /></svg>
             Лента
           </Link>
+          <Link to="/games" className={`sub-nav-link${isActive('/games') ? ' active' : ''}`}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="11" x2="10" y2="11" /><line x1="8" y1="9" x2="8" y2="13" /><line x1="15" y1="12" x2="15.01" y2="12" /><line x1="18" y1="10" x2="18.01" y2="10" /><rect x="2" y="6" width="20" height="12" rx="2" /></svg>
+            Игры
+          </Link>
           {session && myProfile && (
             <Link to={`/profile/${myProfile.username}`} className={`sub-nav-link${isActive('/profile') ? ' active' : ''}`}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-7 8-7s8 3 8 7" /></svg>
@@ -176,6 +180,10 @@ const AppShell: React.FC<AppShellProps> = () => {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="m3 17 6-6 4 4 8-8" /><path d="M14 7h7v7" /></svg>
           Популярное
         </Link>
+        <Link to="/games" className={`sub-nav-link${isActive('/games') ? ' active' : ''}`}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="11" x2="10" y2="11" /><line x1="8" y1="9" x2="8" y2="13" /><line x1="15" y1="12" x2="15.01" y2="12" /><line x1="18" y1="10" x2="18.01" y2="10" /><rect x="2" y="6" width="20" height="12" rx="2" /></svg>
+          Мини-игры
+        </Link>
         {session && myProfile && (
           <Link to={`/profile/${myProfile.username}`} className={`sub-nav-link${isActive('/profile') ? ' active' : ''}`}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-7 8-7s8 3 8 7" /></svg>
@@ -192,6 +200,16 @@ const AppShell: React.FC<AppShellProps> = () => {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12v18l-6-4-6 4z" /></svg>
               Сохранённое
             </Link>
+            <Link to="/me/games" className={`sub-nav-link${isActive('/me/games') ? ' active' : ''}`}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="11" x2="10" y2="11" /><line x1="8" y1="9" x2="8" y2="13" /><line x1="15" y1="12" x2="15.01" y2="12" /><line x1="18" y1="10" x2="18.01" y2="10" /><rect x="2" y="6" width="20" height="12" rx="2" /></svg>
+              Мои игры
+            </Link>
+            {session.user.role === 'admin' && (
+              <Link to="/admin/games" className={`sub-nav-link${isActive('/admin') ? ' active' : ''}`}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
+                Модерация игр
+              </Link>
+            )}
             <Link to="/chat" className={`sub-nav-link${isActive('/chat') ? ' active' : ''}`}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
               Чат
@@ -216,7 +234,7 @@ const AppShell: React.FC<AppShellProps> = () => {
             maxHeight: `calc(100vh - ${navHidden ? 32 : navHeight + 32}px)`,
           }}
         >
-          {session && myProfile && <UserCard myProfile={myProfile} location={location} />}
+          {session && myProfile && <UserCard myProfile={myProfile} location={location} isAdmin={session.user.role === 'admin'} />}
           <BrowseTags />
           {!location.pathname.startsWith('/chat') && <ChatWidget />}
         </aside>
@@ -225,7 +243,7 @@ const AppShell: React.FC<AppShellProps> = () => {
   );
 };
 
-const UserCard = memo(({ myProfile, location }: { myProfile: MyProfile; location: ReturnType<typeof useLocation> }) => {
+const UserCard = memo(({ myProfile, location, isAdmin }: { myProfile: MyProfile; location: ReturnType<typeof useLocation>; isAdmin?: boolean }) => {
   const navLinks = [
     {
       to: `/profile/${myProfile.username}`,
@@ -247,6 +265,13 @@ const UserCard = memo(({ myProfile, location }: { myProfile: MyProfile; location
       icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>,
       label: 'Настройки',
     },
+    ...(isAdmin
+      ? [{
+          to: '/admin/games',
+          icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>,
+          label: 'Модерация игр',
+        }]
+      : []),
   ];
 
   return (

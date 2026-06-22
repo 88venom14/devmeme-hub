@@ -71,6 +71,33 @@ type Comment struct {
 	Profile   Profile   `json:"profile"`
 }
 
+type Game struct {
+	ID              string    `json:"id"`
+	Slug            string    `json:"slug"`
+	AuthorID        string    `json:"author_id"`
+	Title           string    `json:"title"`
+	Description     *string   `json:"description"`
+	ThumbnailURL    *string   `json:"thumbnail_url"`
+	EntryPath       string    `json:"entry_path"`
+	ArchiveSize     *int64    `json:"archive_size"`
+	Status          string    `json:"status"`
+	RejectionReason *string   `json:"rejection_reason"`
+	PlayCount       int64     `json:"play_count"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	Author          Profile   `json:"author"`
+	Tags            []Tag     `json:"tags"`
+}
+
+type GameModerationLogEntry struct {
+	ID          string    `json:"id"`
+	GameID      string    `json:"game_id"`
+	ModeratorID *string   `json:"moderator_id"`
+	Action      string    `json:"action"`
+	Reason      *string   `json:"reason"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
 type ChatConversation struct {
 	ID        string    `json:"id"`
 	UserID    string    `json:"user_id"`

@@ -18,6 +18,11 @@ type Config struct {
 	MaxRequestBytes int64
 	MaxUploadBytes  int64
 	MediaDir        string
+	// GamesDir is where uploaded mini-game bundles are extracted, one
+	// subdirectory per game slug.
+	GamesDir string
+	// MaxGameUploadBytes caps the size of an uploaded game archive (.zip).
+	MaxGameUploadBytes int64
 }
 
 // knownWeakSecrets are placeholder values shipped in example/config files.
@@ -41,6 +46,9 @@ func Load() (Config, error) {
 		MaxRequestBytes: int64Env("MAX_REQUEST_BYTES", 64<<20),
 		MaxUploadBytes:  int64Env("MAX_UPLOAD_BYTES", 50<<20),
 		MediaDir:        env("MEDIA_DIR", "media"),
+		GamesDir:        env("GAMES_DIR", "games"),
+		// 25 MB per the mini-game upload spec; a zip bundle of static assets.
+		MaxGameUploadBytes: int64Env("MAX_GAME_UPLOAD_BYTES", 25<<20),
 	}
 
 	if cfg.DatabaseURL == "" {

@@ -11,6 +11,7 @@ bin/
 
 # Runtime uploads and logs
 media/
+games/
 *.log
 
 # Go local cache/profiles

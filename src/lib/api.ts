@@ -1,7 +1,46 @@
-import type { Comment, MyProfile, PostWithMeta, Profile, Tag, TopTag } from '../types';
+import type {
+  AdminGamesResponse, Comment, Game, GameModerationLogEntry, GameStatus,
+  MyProfile, PostWithMeta, Profile, Tag, TopTag,
+} from '../types';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:8080';
 export const TOKEN_KEY = 'devmeme_token';
+
+// Absolute URL to a game's sandboxed entry file, served from the API origin's
+// /games-static route. Loaded only inside the sandboxed GameFrame iframe.
+export function gameEntryUrl(game: Pick<Game, 'slug' | 'entry_path'>): string {
+  const entry = game.entry_path || 'index.html';
+  return `${API_BASE_URL}/games-static/${encodeURIComponent(game.slug)}/${entry}`;
+}
+
+export type GameUploadInput = {
+  title: string;
+  description?: string | null;
+  thumbnail_url?: string | null;
+  tags?: string[];
+  archive?: File | null;
+};
+
+function buildGameForm(input: GameUploadInput): FormData {
+  const form = new FormData();
+  form.append('title', input.title);
+  if (input.description) form.append('description', input.description);
+  if (input.thumbnail_url) form.append('thumbnail_url', input.thumbnail_url);
+  for (const tag of input.tags ?? []) form.append('tags', tag);
+  if (input.archive) form.append('archive', input.archive);
+  return form;
+}
+
+async function multipartRequest<T>(path: string, method: string, form: FormData): Promise<T> {
+  const token = getToken();
+  const headers = new Headers();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  const res = await fetch(`${API_BASE_URL}${path}`, { method, headers, body: form });
+  if (res.status === 204) return undefined as T;
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
+  return body as T;
+}
 
 type ApiPost = Omit<PostWithMeta, 'profiles' | 'stars' | 'comments' | 'post_tags'> & {
   profile?: Profile;
@@ -21,7 +60,7 @@ type ApiComment = Omit<Comment, 'profiles'> & {
 
 export type AppSession = {
   access_token: string;
-  user: { id: string; email: string };
+  user: { id: string; email: string; role?: string };
   profile?: Profile | null;
 };
 
@@ -276,6 +315,67 @@ export const api = {
       profiles: { username: string; display_name: string | null }[];
       posts: { id: string; title: string }[];
     }>(`/api/search?q=${encodeURIComponent(q)}`);
+  },
+
+  // ── Mini-games ──
+  listGames(params: { q?: string; tag?: string; limit?: number } = {}) {
+    const search = new URLSearchParams();
+    if (params.q) search.set('q', params.q);
+    if (params.tag) search.set('tag', params.tag);
+    if (params.limit) search.set('limit', String(params.limit));
+    const qs = search.toString();
+    return request<Game[]>(`/api/games${qs ? `?${qs}` : ''}`);
+  },
+
+  getGame(slug: string) {
+    return request<Game>(`/api/games/${encodeURIComponent(slug)}`);
+  },
+
+  playGame(slug: string) {
+    return request<void>(`/api/games/${encodeURIComponent(slug)}/play`, { method: 'POST' });
+  },
+
+  listMyGames() {
+    return request<Game[]>('/api/me/games');
+  },
+
+  uploadGame(input: GameUploadInput) {
+    return multipartRequest<Game>('/api/games', 'POST', buildGameForm(input));
+  },
+
+  updateGame(slug: string, input: GameUploadInput) {
+    return multipartRequest<Game>(`/api/games/${encodeURIComponent(slug)}`, 'PUT', buildGameForm(input));
+  },
+
+  deleteGame(slug: string) {
+    return request<void>(`/api/games/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+  },
+
+  adminListGames(status?: GameStatus) {
+    const qs = status ? `?status=${status}` : '';
+    return request<AdminGamesResponse>(`/api/admin/games${qs}`);
+  },
+
+  approveGame(slug: string) {
+    return request<Game>(`/api/admin/games/${encodeURIComponent(slug)}/approve`, { method: 'POST' });
+  },
+
+  rejectGame(slug: string, reason: string) {
+    return request<Game>(`/api/admin/games/${encodeURIComponent(slug)}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  removeGame(slug: string, reason?: string) {
+    return request<Game>(`/api/admin/games/${encodeURIComponent(slug)}/remove`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: reason ?? '' }),
+    });
+  },
+
+  gameModerationLog(slug: string) {
+    return request<GameModerationLogEntry[]>(`/api/admin/games/${encodeURIComponent(slug)}/moderation-log`);
   },
 
   listConversations() {

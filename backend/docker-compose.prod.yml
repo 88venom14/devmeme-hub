@@ -45,8 +45,11 @@ services:
       MAX_REQUEST_BYTES: ${MAX_REQUEST_BYTES:-67108864}
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-52428800}
       MEDIA_DIR: /app/media
+      GAMES_DIR: /app/games
+      MAX_GAME_UPLOAD_BYTES: ${MAX_GAME_UPLOAD_BYTES:-26214400}
     volumes:
       - devmeme_media_data:/app/media
+      - devmeme_games_data:/app/games
     # No host port published; Caddy reaches the backend on the internal network.
     healthcheck:
       # GET (not --spider/HEAD): the /healthz route is registered for GET only.
@@ -75,5 +78,6 @@ services:
 volumes:
   devmeme_postgres_data:
   devmeme_media_data:
+  devmeme_games_data:
   devmeme_caddy_data:
   devmeme_caddy_config:
