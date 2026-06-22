@@ -27,6 +27,16 @@ try {
   rmSync('assets', { recursive: true, force: true });
   cpSync('dist/assets', 'assets', { recursive: true });
 
+  // Static files that live at the site root (served verbatim by GitHub Pages).
+  // .nojekyll disables Jekyll so dot-directories like .well-known are published;
+  // .well-known/discord is the Discord domain-verification token. Vite copies
+  // public/ into dist/, so these come from dist/ after the build.
+  if (existsSync('dist/.nojekyll')) cpSync('dist/.nojekyll', '.nojekyll');
+  if (existsSync('dist/.well-known')) {
+    rmSync('.well-known', { recursive: true, force: true });
+    cpSync('dist/.well-known', '.well-known', { recursive: true });
+  }
+
   // Vite's chunk-dep map references assets/index2.css for a CSS chunk
   // that doesn't actually get emitted (highlight.js side-effect import is
   // empty after our overrides). Write a stub so the preload succeeds.
