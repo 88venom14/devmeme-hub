@@ -3,26 +3,30 @@
 {$API_DOMAIN} {
 	encode zstd gzip
 
+	# Everything except user-game bundles. A global header set + a path-scoped
+	# delete don't compose reliably in Caddy, so X-Frame-Options is applied via
+	# this negative matcher instead.
+	@notgames not path /games-static/*
+
 	# Security response headers applied to every API response.
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
-		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Cross-Origin-Resource-Policy "cross-origin"
 		# Don't advertise the server software.
 		-Server
 	}
 
+	# X-Frame-Options: DENY everywhere EXCEPT mini-game bundles, which our own
+	# app must be able to embed in its sandboxed iframe (the backend's CSP
+	# frame-ancestors governs who may frame a game instead).
+	header @notgames X-Frame-Options "DENY"
+
 	# Cache media for an hour, but with explicit semantics so response-header
 	# changes propagate instead of getting stuck in browsers' heuristic cache
 	# (which previously masked the CORP fix and kept videos blocked).
 	header /media/* Cache-Control "public, max-age=3600"
-
-	# Mini-game bundles are meant to be embedded in our own app's iframe. The
-	# blanket X-Frame-Options: DENY above would block that, so drop it for the
-	# games-static path and let the backend's CSP frame-ancestors govern framing.
-	header /games-static/* -X-Frame-Options
 
 	# Proxy everything to the Go backend on the internal compose network.
 	reverse_proxy backend:8080
@@ -44,19 +48,21 @@
 ado.404.mn {
 	encode zstd gzip
 
+	# See the API_DOMAIN block above: X-Frame-Options is set via a negative
+	# matcher so mini-game bundles (/games-static/*) can be framed by our app.
+	@notgames not path /games-static/*
+
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
-		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Cross-Origin-Resource-Policy "cross-origin"
 		-Server
 	}
 
-	header /media/* Cache-Control "public, max-age=3600"
+	header @notgames X-Frame-Options "DENY"
 
-	# See the games-static note above: allow our own app to frame game bundles.
-	header /games-static/* -X-Frame-Options
+	header /media/* Cache-Control "public, max-age=3600"
 
 	reverse_proxy backend:8080
 
