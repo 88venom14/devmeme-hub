@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Play, Pencil, Trash2, Upload } from 'lucide-react';
-import { useMyGames, useDeleteGame } from '../hooks/useGames';
-import GameStatusBadge from '../components/games/GameStatusBadge';
+import { useMyGames, useDeleteGame } from '@/hooks/useGames';
+import GameStatusBadge from '@/components/games/GameStatusBadge';
 
 const MyGamesPage: React.FC = () => {
   const { data: games, isLoading, error } = useMyGames();

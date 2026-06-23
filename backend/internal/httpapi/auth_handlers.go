@@ -12,6 +12,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// dummyBcryptHash is a valid hash compared against during login when the email
+// has no account, so the response time of a missing user matches a real one.
+var dummyBcryptHash, _ = bcrypt.GenerateFromPassword([]byte("timing-equalizer-not-a-real-password"), bcrypt.DefaultCost)
+
 type authRequest struct {
 	Email       string  `json:"email"`
 	Password    string  `json:"password"`
@@ -54,12 +58,19 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(r.Context())
 
+	// When email verification is active, the account starts 'pending' (and so
+	// cannot log in until verified); otherwise it is instantly 'active'.
+	newStatus := "active"
+	if s.emailVerificationActive() {
+		newStatus = "pending"
+	}
+
 	var user User
 	err = tx.QueryRow(r.Context(), `
 		INSERT INTO users (email, password_hash, status, email_verified_at)
-		VALUES ($1, $2, 'active', NOW())
+		VALUES ($1, $2, $3, CASE WHEN $3 = 'active' THEN NOW() ELSE NULL END)
 		RETURNING id::text, email::text, role, status, metadata, created_at, updated_at
-	`, req.Email, string(hash)).Scan(
+	`, req.Email, string(hash), newStatus).Scan(
 		&user.ID, &user.Email, &user.Role, &user.Status, &user.Metadata, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
@@ -96,6 +107,24 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verification flow: don't log the user in. Send the link and tell the
+	// client to prompt the user to check their inbox.
+	if newStatus == "pending" {
+		if err := s.sendVerificationEmail(r.Context(), user.ID, user.Email); err != nil {
+			// The account exists; surface a soft error so the user can retry
+			// via "resend" rather than being stuck.
+			writeJSON(w, http.StatusCreated, map[string]any{
+				"status": "verification_pending", "email": user.Email,
+				"warning": "could not send verification email; use resend",
+			})
+			return
+		}
+		writeJSON(w, http.StatusCreated, map[string]any{
+			"status": "verification_sent", "email": user.Email,
+		})
+		return
+	}
+
 	token, expiresAt, err := auth.IssueToken(s.cfg.JWTSecret, user.ID, user.Email, s.cfg.AccessTokenTTL)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "could not issue token")
@@ -127,12 +156,22 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	`, req.Email).Scan(
 		&user.ID, &user.Email, &user.Role, &user.Status, &user.Metadata, &user.CreatedAt, &user.UpdatedAt, &passwordHash,
 	)
-	if errors.Is(err, pgx.ErrNoRows) || bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)) != nil {
+	// Distinguish a real DB error (500) from "no such user" (401) before doing
+	// the password check — the previous combined condition masked DB errors as
+	// 401 and skipped the 500 branch entirely.
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusInternalServerError, "could not load user")
+		return
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		// Compare against a dummy hash so a missing account costs roughly the same
+		// as a real one, flattening the email-enumeration timing side channel.
+		_ = bcrypt.CompareHashAndPassword(dummyBcryptHash, []byte(req.Password))
 		writeError(w, http.StatusUnauthorized, "invalid email or password")
 		return
 	}
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "could not load user")
+	if bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)) != nil {
+		writeError(w, http.StatusUnauthorized, "invalid email or password")
 		return
 	}
 	if user.Status != "active" {

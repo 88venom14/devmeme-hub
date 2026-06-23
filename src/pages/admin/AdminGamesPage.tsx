@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useAdminGames } from '../hooks/useGames';
-import ModerationQueue from '../components/games/ModerationQueue';
-import AdminNav from '../components/admin/AdminNav';
-import type { GameStatus } from '../types';
+import { useAdminGames } from '@/hooks/useGames';
+import ModerationQueue from '@/components/games/ModerationQueue';
+import AdminNav from '@/components/admin/AdminNav';
+import type { GameStatus } from '@/types';
 
 type Filter = GameStatus | 'all';
 

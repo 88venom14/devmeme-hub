@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2, ExternalLink, Heart, MessageCircle, Search } from 'lucide-react';
-import { useAdminPosts, useAdminDeletePost } from '../hooks/useAdminPosts';
-import AdminNav from '../components/admin/AdminNav';
-import Avatar from '../components/Avatar';
-import { inputStyle } from '../styles/forms';
-import type { PostWithMeta } from '../types';
+import { useAdminPosts, useAdminDeletePost } from '@/hooks/useAdminPosts';
+import AdminNav from '@/components/admin/AdminNav';
+import Avatar from '@/components/common/Avatar';
+import { inputStyle } from '@/styles/forms';
+import type { PostWithMeta } from '@/types';
 
 const AdminPostsPage: React.FC = () => {
   const [query, setQuery] = useState('');

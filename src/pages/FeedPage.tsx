@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import PostCard from '../components/feed/PostCard';
 import PostGrid from '../components/feed/PostGrid';
-import Avatar from '../components/Avatar';
+import Avatar from '@/components/common/Avatar';
 import { useSessionContext } from '../context/SessionContext';
 import { useMyProfile } from '../hooks/useMyProfile';
 

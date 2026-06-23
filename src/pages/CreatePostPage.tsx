@@ -9,8 +9,8 @@ import { useMyProfile } from '../hooks/useMyProfile';
 import { uploadPostMedia } from '../lib/storage';
 import { parseTags } from '../lib/tags';
 import { LIMITS, isValidGithubUrl } from '../lib/validation';
-import MarkdownContent from '../components/MarkdownContent';
-import Avatar from '../components/Avatar';
+import MarkdownContent from '@/components/common/MarkdownContent';
+import Avatar from '@/components/common/Avatar';
 import { Code, ExternalLink } from 'lucide-react';
 
 /* ── live preview ── */

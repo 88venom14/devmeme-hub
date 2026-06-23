@@ -99,6 +99,18 @@ func (s *Server) createPost(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "at most 10 tags are allowed")
 		return
 	}
+	for _, msg := range []string{
+		optionalTextErr("description", req.Description, maxPostDescription),
+		optionalTextErr("content_md", req.ContentMD, maxPostContent),
+		optionalURLErr("image_url", req.ImageURL, maxURLLen),
+		optionalURLErr("video_url", req.VideoURL, maxURLLen),
+		optionalURLErr("github_url", req.GithubURL, maxGithubURLLen),
+	} {
+		if msg != "" {
+			writeError(w, http.StatusBadRequest, msg)
+			return
+		}
+	}
 
 	user := mustUser(r)
 	tx, err := s.db.Begin(r.Context())
@@ -120,6 +132,10 @@ func (s *Server) createPost(w http.ResponseWriter, r *http.Request) {
 		RETURNING id::text
 	`, user.ID, req.Title, req.Description, req.ContentMD, req.ImageURL, req.VideoURL, req.GithubURL, githubJSON).Scan(&postID)
 	if err != nil {
+		if isConstraintViolation(err) {
+			writeError(w, http.StatusBadRequest, "one or more fields have an invalid value")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "could not create post")
 		return
 	}

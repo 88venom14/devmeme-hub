@@ -69,6 +69,37 @@ func (s *Server) createComment(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "comment must be at most 5000 characters")
 		return
 	}
+	if !isUUID(req.PostID) {
+		writeError(w, http.StatusBadRequest, "invalid post_id")
+		return
+	}
+	if req.ParentID != nil && !isUUID(*req.ParentID) {
+		writeError(w, http.StatusBadRequest, "invalid parent_id")
+		return
+	}
+
+	// The post must exist (otherwise the FK insert would surface as a 500), and a
+	// reply's parent must belong to the same post (no cross-post threading).
+	var postExists bool
+	if err := s.db.QueryRow(r.Context(), `SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1)`, req.PostID).Scan(&postExists); err != nil {
+		writeError(w, http.StatusInternalServerError, "could not validate post")
+		return
+	}
+	if !postExists {
+		writeError(w, http.StatusNotFound, "post not found")
+		return
+	}
+	if req.ParentID != nil {
+		var parentOK bool
+		if err := s.db.QueryRow(r.Context(), `SELECT EXISTS(SELECT 1 FROM comments WHERE id = $1 AND post_id = $2)`, *req.ParentID, req.PostID).Scan(&parentOK); err != nil {
+			writeError(w, http.StatusInternalServerError, "could not validate parent comment")
+			return
+		}
+		if !parentOK {
+			writeError(w, http.StatusBadRequest, "parent comment does not belong to this post")
+			return
+		}
+	}
 
 	var comment Comment
 	err := s.db.QueryRow(r.Context(), `

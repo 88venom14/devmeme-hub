@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getToken, setToken, clearToken, TOKEN_KEY } from './api';
+import { getToken, setToken, clearToken, TOKEN_KEY } from '@/lib/api';
 
 describe('token helpers', () => {
   beforeEach(() => {

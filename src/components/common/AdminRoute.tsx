@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useSessionContext } from '../context/SessionContext';
+import { useSessionContext } from '@/context/SessionContext';
 
 /**
  * AdminRoute hides admin UI from non-admins. It is a convenience only — every

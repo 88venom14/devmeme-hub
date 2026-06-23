@@ -47,6 +47,18 @@ services:
       MEDIA_DIR: /app/media
       GAMES_DIR: /app/games
       MAX_GAME_UPLOAD_BYTES: ${MAX_GAME_UPLOAD_BYTES:-26214400}
+      # GitHub OAuth login. Empty client id/secret disables it (OAuthEnabled()).
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-}
+      # Where the backend redirects the browser after OAuth / in email links.
+      FRONTEND_URL: ${FRONTEND_URL:-https://fluttershy.horsefucker.ru}
+      # Email verification (Resend). Verification only enforced when the flag is
+      # on AND a Resend API key is configured.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_VERIFICATION: ${EMAIL_VERIFICATION:-false}
+      EMAIL_VERIFY_TTL: ${EMAIL_VERIFY_TTL:-24h}
     volumes:
       - devmeme_media_data:/app/media
       - devmeme_games_data:/app/games

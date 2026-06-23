@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Play } from 'lucide-react';
-import { useGame } from '../hooks/useGames';
-import { api } from '../lib/api';
-import Avatar from '../components/Avatar';
-import GameFrame from '../components/games/GameFrame';
+import { useGame } from '@/hooks/useGames';
+import { api } from '@/lib/api';
+import Avatar from '@/components/common/Avatar';
+import GameFrame from '@/components/games/GameFrame';
 
 const GamePlayPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();

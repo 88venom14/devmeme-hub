@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
-import { LIMITS, validateUsername } from '../lib/validation';
+import { api, oauthStartUrl } from '@/lib/api';
+import { LIMITS, validateUsername } from '@/lib/validation';
 
 const GithubIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -74,6 +74,10 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
+  // Set after a sign-up that needs email confirmation — swaps the form for a
+  // "check your inbox" panel with a resend option.
+  const [verifySentTo, setVerifySentTo] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
   const [message, setMessage] = useState<{ kind: 'error' | 'info'; text: string } | null>(() => {
     const err = new URLSearchParams(window.location.search).get('auth_error');
     if (err) {
@@ -83,9 +87,29 @@ const LoginPage: React.FC = () => {
     return null;
   });
 
-  const handleOAuth = async (provider: Provider) => {
+  const handleOAuth = (provider: Provider) => {
     setMessage(null);
-    setMessage({ kind: 'info', text: `${provider}: OAuth пока не подключён к локальному backend. Используйте вход по email.` });
+    if (provider === 'github') {
+      // Full-page redirect into the backend OAuth flow. It bounces through
+      // GitHub and returns to /auth/callback#token=… (see AuthCallbackPage).
+      window.location.href = oauthStartUrl('github');
+      return;
+    }
+    setMessage({ kind: 'info', text: 'Вход через Google пока недоступен. Используйте GitHub или email.' });
+  };
+
+  const handleResend = async () => {
+    if (!verifySentTo || busy) return;
+    setBusy(true);
+    try {
+      await api.resendVerification(verifySentTo);
+      setResent(true);
+    } catch {
+      // resend is best-effort (backend always 200s); ignore transport errors
+      setResent(true);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleEmail = async (e: React.FormEvent) => {
@@ -118,8 +142,12 @@ const LoginPage: React.FC = () => {
         await api.login(email, password);
         navigate('/feed', { replace: true });
       } else {
-        await api.register(email, password, username.trim() || email.split('@')[0]);
-        navigate('/feed', { replace: true });
+        const result = await api.register(email, password, username.trim() || email.split('@')[0]);
+        if (result.kind === 'verification') {
+          setVerifySentTo(result.email);
+        } else {
+          navigate('/feed', { replace: true });
+        }
       }
     } catch (err) {
       setMessage({ kind: 'error', text: (err as Error).message });
@@ -157,6 +185,48 @@ const LoginPage: React.FC = () => {
         background: 'var(--bg-1)', border: '1px solid var(--border)',
         borderRadius: 14,
       }}>
+        {verifySentTo ? (
+          /* Email verification sent — check inbox */
+          <div style={{ textAlign: 'center', padding: '8px 4px' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>📬</div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-1)', fontFamily: 'var(--font-display)', margin: '0 0 10px' }}>
+              Проверьте почту
+            </h2>
+            <p style={{ fontSize: 13, color: 'var(--text-3)', lineHeight: 1.5, margin: '0 0 20px' }}>
+              Мы отправили ссылку для подтверждения на{' '}
+              <span style={{ color: 'var(--text-1)', fontFamily: 'var(--font-mono)' }}>{verifySentTo}</span>.
+              Откройте письмо и перейдите по ссылке, чтобы активировать аккаунт.
+            </p>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={busy || resent}
+              style={{
+                width: '100%', padding: '9px 14px', marginBottom: 10,
+                background: 'var(--bg-2)', border: '1px solid var(--border)',
+                borderRadius: 8, color: 'var(--text-1)',
+                fontSize: 13, fontFamily: 'var(--font-ui)',
+                cursor: (busy || resent) ? 'default' : 'pointer',
+                opacity: (busy || resent) ? 0.6 : 1,
+              }}
+            >
+              {resent ? 'Письмо отправлено повторно' : busy ? 'Отправка...' : 'Отправить письмо ещё раз'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setVerifySentTo(null); setResent(false); setMode('signin'); }}
+              style={{
+                width: '100%', padding: '9px 14px',
+                background: 'transparent', border: 'none',
+                color: 'var(--text-3)', fontSize: 12, fontFamily: 'var(--font-mono)',
+                cursor: 'pointer',
+              }}
+            >
+              ← Вернуться ко входу
+            </button>
+          </div>
+        ) : (
+        <>
         {/* Mode toggle */}
         <div style={{
           display: 'inline-flex', width: '100%',
@@ -307,6 +377,8 @@ const LoginPage: React.FC = () => {
         <div style={{ marginTop: 20, textAlign: 'center', fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>
           Продолжая, вы соглашаетесь с <a href="#" style={{ color: 'var(--accent)' }}>Условиями</a> и <a href="#" style={{ color: 'var(--accent)' }}>Политикой конфиденциальности</a>.
         </div>
+        </>
+        )}
       </div>
 
       <div style={{ marginTop: 24, fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
