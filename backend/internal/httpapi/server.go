@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"devmeme-hub/backend/internal/config"
+	"devmeme-hub/backend/internal/email"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -15,12 +16,17 @@ import (
 )
 
 type Server struct {
-	cfg config.Config
-	db  *pgxpool.Pool
+	cfg     config.Config
+	db      *pgxpool.Pool
+	emailer *email.Resend
 }
 
 func NewServer(cfg config.Config, pool *pgxpool.Pool) *Server {
-	return &Server{cfg: cfg, db: pool}
+	return &Server{
+		cfg:     cfg,
+		db:      pool,
+		emailer: email.NewResend(cfg.ResendAPIKey, cfg.EmailFrom),
+	}
 }
 
 func (s *Server) Routes() http.Handler {
@@ -61,7 +67,13 @@ func (s *Server) Routes() http.Handler {
 			r.Use(httprate.LimitByIP(10, time.Minute))
 			r.Post("/auth/register", s.register)
 			r.Post("/auth/login", s.login)
+			r.Post("/auth/resend-verification", s.resendVerification)
 		})
+
+		// GitHub OAuth + email verification — redirect/link based, public.
+		r.Get("/auth/github/start", s.githubStart)
+		r.Get("/auth/github/callback", s.githubCallback)
+		r.Get("/auth/verify", s.verifyEmail)
 
 		r.Group(func(r chi.Router) {
 			r.Use(s.requireUser)

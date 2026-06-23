@@ -2,9 +2,12 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"devmeme-hub/backend/internal/auth"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type userContextKey struct{}
@@ -24,6 +27,23 @@ func (s *Server) requireUser(next http.Handler) http.Handler {
 		claims, err := auth.ParseToken(s.cfg.JWTSecret, raw)
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "invalid bearer token")
+			return
+		}
+		// The JWT is stateless, so re-check the account on every request: a user
+		// suspended or deleted after their token was issued must lose access
+		// immediately, not only when the token expires.
+		var status string
+		err = s.db.QueryRow(r.Context(), `SELECT status FROM users WHERE id = $1`, claims.UserID).Scan(&status)
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, http.StatusUnauthorized, "user no longer exists")
+			return
+		}
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "could not verify account")
+			return
+		}
+		if status != "active" {
+			writeError(w, http.StatusForbidden, "account is not active")
 			return
 		}
 		ctx := context.WithValue(r.Context(), userContextKey{}, currentUser{

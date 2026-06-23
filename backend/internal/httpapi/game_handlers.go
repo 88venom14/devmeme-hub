@@ -32,7 +32,7 @@ func (s *Server) listGames(w http.ResponseWriter, r *http.Request) {
 	where := []string{"g.status = 'approved'"}
 
 	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
-		args = append(args, "%"+q+"%")
+		args = append(args, "%"+escapeLike(q)+"%")
 		where = append(where, "(g.title ILIKE $"+itoa(len(args))+" OR g.description ILIKE $"+itoa(len(args))+")")
 	}
 	if tag := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("tag"))); tag != "" {
@@ -183,10 +183,14 @@ func (s *Server) updateGame(w http.ResponseWriter, r *http.Request) {
 	defer cleanup()
 
 	destDir := filepath.Join(s.cfg.GamesDir, storagePath)
-	// Re-uploaded bundle (optional on edit): extract to a sibling dir, then swap
-	// atomically so a failed extraction never corrupts the live files.
+	// Re-uploaded bundle (optional on edit): extract+validate into a sibling
+	// staging dir now, but swap it in only AFTER the DB commit below. That keeps
+	// the database (the source of truth) from ever describing files that were
+	// never written. If anything fails before the swap, the staging dir is
+	// removed and the live files are left untouched.
+	stagingDir := ""
 	if archivePath != "" {
-		stagingDir := destDir + ".new"
+		stagingDir = destDir + ".new"
 		_ = os.RemoveAll(stagingDir)
 		if err := extractGameArchive(archivePath, stagingDir); err != nil {
 			if isGameValidationError(err) {
@@ -196,16 +200,13 @@ func (s *Server) updateGame(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "could not process game archive")
 			return
 		}
-		if err := os.RemoveAll(destDir); err != nil {
-			_ = os.RemoveAll(stagingDir)
-			writeError(w, http.StatusInternalServerError, "could not replace game files")
-			return
-		}
-		if err := os.Rename(stagingDir, destDir); err != nil {
-			writeError(w, http.StatusInternalServerError, "could not replace game files")
-			return
-		}
 	}
+	// Clean up the staging dir on any early return; cleared to "" once swapped in.
+	defer func() {
+		if stagingDir != "" {
+			_ = os.RemoveAll(stagingDir)
+		}
+	}()
 
 	tx, err := s.db.Begin(r.Context())
 	if err != nil {
@@ -250,6 +251,20 @@ func (s *Server) updateGame(w http.ResponseWriter, r *http.Request) {
 	if err := tx.Commit(r.Context()); err != nil {
 		writeError(w, http.StatusInternalServerError, "could not commit game")
 		return
+	}
+
+	// DB committed — now swap the validated bundle in. Done after commit so a
+	// filesystem failure can't leave the DB describing files that don't exist.
+	if stagingDir != "" {
+		if err := os.RemoveAll(destDir); err != nil {
+			writeError(w, http.StatusInternalServerError, "could not replace game files")
+			return
+		}
+		if err := os.Rename(stagingDir, destDir); err != nil {
+			writeError(w, http.StatusInternalServerError, "could not replace game files")
+			return
+		}
+		stagingDir = "" // swapped in; disable the cleanup defer
 	}
 
 	s.writeGameByID(w, r.Context(), gameID, http.StatusOK)

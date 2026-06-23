@@ -23,6 +23,31 @@ type Config struct {
 	GamesDir string
 	// MaxGameUploadBytes caps the size of an uploaded game archive (.zip).
 	MaxGameUploadBytes int64
+
+	// ── GitHub OAuth ──
+	GithubClientID     string
+	GithubClientSecret string
+	// GithubCallbackURL is the exact callback registered in the GitHub OAuth App
+	// (e.g. https://ado.404.mn/api/auth/github/callback). Used as the OAuth
+	// redirect_uri; it must match the app's setting byte-for-byte.
+	GithubCallbackURL string
+	// FrontendURL is where the user is redirected after OAuth / where email
+	// verification links point (e.g. https://fluttershy.horsefucker.ru).
+	FrontendURL string
+
+	// ── Email (Resend) ──
+	ResendAPIKey string
+	EmailFrom    string
+	// EmailVerification gates new email/password sign-ups behind a verification
+	// link. When false (default, e.g. local dev without email) registration is
+	// instantly active, preserving the previous behavior.
+	EmailVerification bool
+	EmailVerifyTTL    time.Duration
+}
+
+// OAuthEnabled reports whether GitHub OAuth is configured.
+func (c Config) OAuthEnabled() bool {
+	return c.GithubClientID != "" && c.GithubClientSecret != "" && c.GithubCallbackURL != ""
 }
 
 // knownWeakSecrets are placeholder values shipped in example/config files.
@@ -49,6 +74,16 @@ func Load() (Config, error) {
 		GamesDir:        env("GAMES_DIR", "games"),
 		// 25 MB per the mini-game upload spec; a zip bundle of static assets.
 		MaxGameUploadBytes: int64Env("MAX_GAME_UPLOAD_BYTES", 25<<20),
+
+		GithubClientID:     os.Getenv("GITHUB_CLIENT_ID"),
+		GithubClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
+		GithubCallbackURL:  os.Getenv("GITHUB_CALLBACK_URL"),
+		FrontendURL:        env("FRONTEND_URL", "http://localhost:5173"),
+
+		ResendAPIKey:      os.Getenv("RESEND_API_KEY"),
+		EmailFrom:         env("EMAIL_FROM", "DevMeme <onboarding@resend.dev>"),
+		EmailVerification: boolEnv("EMAIL_VERIFICATION", false),
+		EmailVerifyTTL:    durationEnv("EMAIL_VERIFY_TTL", 24*time.Hour),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -137,6 +172,18 @@ func durationEnv(key string, fallback time.Duration) time.Duration {
 		return fallback
 	}
 	return value
+}
+
+func boolEnv(key string, fallback bool) bool {
+	raw := strings.TrimSpace(strings.ToLower(os.Getenv(key)))
+	switch raw {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	default:
+		return fallback
+	}
 }
 
 func int64Env(key string, fallback int64) int64 {

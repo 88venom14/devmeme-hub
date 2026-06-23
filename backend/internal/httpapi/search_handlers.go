@@ -32,8 +32,8 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.HasPrefix(q, "#") {
-		q = strings.TrimPrefix(q, "#")
+	if rest, ok := strings.CutPrefix(q, "#"); ok {
+		q = rest
 		tags, err := s.searchTags(r, q)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "could not search tags")
@@ -63,7 +63,7 @@ func (s *Server) searchTags(r *http.Request, q string) ([]Tag, error) {
 		WHERE name ILIKE $1
 		ORDER BY name ASC
 		LIMIT 8
-	`, q+"%")
+	`, escapeLike(q)+"%")
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (s *Server) searchProfiles(r *http.Request, q string) ([]profileSearchHit, 
 		WHERE username ILIKE $1 OR display_name ILIKE $1
 		ORDER BY username ASC
 		LIMIT 3
-	`, "%"+q+"%")
+	`, "%"+escapeLike(q)+"%")
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (s *Server) searchPosts(r *http.Request, q string) ([]postSearchHit, error)
 		WHERE title ILIKE $1
 		ORDER BY created_at DESC
 		LIMIT 5
-	`, "%"+q+"%")
+	`, "%"+escapeLike(q)+"%")
 	if err != nil {
 		return nil, err
 	}

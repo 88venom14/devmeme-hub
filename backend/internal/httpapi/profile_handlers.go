@@ -148,13 +148,26 @@ func (s *Server) profileVisibleTo(ctx context.Context, targetID, viewerID string
 }
 
 func (s *Server) getProfileStats(w http.ResponseWriter, r *http.Request) {
+	profileID := chi.URLParam(r, "profileID")
+	// Respect followers-only privacy: hide counts from viewers who can't see the
+	// profile (matches respondProfile / listProfilePosts behavior).
+	visible, err := s.profileVisibleTo(r.Context(), profileID, mustUser(r).ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not load profile stats")
+		return
+	}
+	if !visible {
+		writeJSON(w, http.StatusOK, map[string]int64{"followers": 0, "following": 0})
+		return
+	}
+
 	var followers int64
 	var following int64
-	err := s.db.QueryRow(r.Context(), `
+	err = s.db.QueryRow(r.Context(), `
 		SELECT
 			(SELECT count(*) FROM follows WHERE following_id = $1),
 			(SELECT count(*) FROM follows WHERE follower_id = $1)
-	`, chi.URLParam(r, "profileID")).Scan(&followers, &following)
+	`, profileID).Scan(&followers, &following)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "could not load profile stats")
 		return
@@ -214,6 +227,10 @@ func (s *Server) updateMyProfile(w http.ResponseWriter, r *http.Request) {
 			normalized := strings.TrimSpace(strings.ToLower(*value))
 			value = &normalized
 		}
+		if msg := validateProfileField(key, value); msg != "" {
+			writeError(w, http.StatusBadRequest, msg)
+			return
+		}
 		args = append(args, value)
 		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", field.column, len(args)))
 	}
@@ -245,6 +262,10 @@ func (s *Server) updateMyProfile(w http.ResponseWriter, r *http.Request) {
 	)
 	if isUniqueViolation(err) {
 		writeError(w, http.StatusConflict, "username is already taken")
+		return
+	}
+	if isConstraintViolation(err) {
+		writeError(w, http.StatusBadRequest, "one or more fields have an invalid value")
 		return
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
