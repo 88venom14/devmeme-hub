@@ -77,7 +77,15 @@ func (s *Server) getProfileByUsername(w http.ResponseWriter, r *http.Request) {
 // and the viewer is not the owner or a follower, only minimal identity is
 // returned with is_private set, so the UI can show a "followers only" notice.
 func (s *Server) respondProfile(w http.ResponseWriter, r *http.Request, profile Profile) {
-	visible, err := s.profileVisibleTo(r.Context(), profile.ID, mustUser(r).ID)
+	viewerID := mustUser(r).ID
+	// Moderators/admins see role + ban state on every profile, even ones that
+	// are otherwise followers-only private.
+	moderation, err := s.moderationInfoFor(r.Context(), viewerID, profile.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not load profile")
+		return
+	}
+	visible, err := s.profileVisibleTo(r.Context(), profile.ID, viewerID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "could not load profile")
 		return
@@ -92,16 +100,48 @@ func (s *Server) respondProfile(w http.ResponseWriter, r *http.Request, profile 
 			CreatedAt:   profile.CreatedAt,
 			UpdatedAt:   profile.UpdatedAt,
 			IsPrivate:   true,
+			Moderation:  moderation,
 		})
 		return
 	}
-	hidden, err := s.likedHiddenFor(r.Context(), profile.ID, mustUser(r).ID)
+	hidden, err := s.likedHiddenFor(r.Context(), profile.ID, viewerID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "could not load profile")
 		return
 	}
 	profile.LikedHidden = hidden
+	profile.Moderation = moderation
 	writeJSON(w, http.StatusOK, profile)
+}
+
+// moderationInfoFor returns the role/ban state of targetID, but only when the
+// viewer is a moderator or admin. Anonymous or regular viewers get nil (the
+// field is then omitted from the response). The status is run through
+// effectiveStatus so an expired temporary ban shows as active.
+func (s *Server) moderationInfoFor(ctx context.Context, viewerID, targetID string) (*ProfileModeration, error) {
+	if viewerID == "" {
+		return nil, nil
+	}
+	viewerRole, err := s.userRole(ctx, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	if viewerRole != "admin" && viewerRole != "moderator" {
+		return nil, nil
+	}
+	var m ProfileModeration
+	err = s.db.QueryRow(ctx,
+		`SELECT role, status, locked_until, metadata->'ban'->>'reason' FROM users WHERE id = $1`,
+		targetID).Scan(&m.Role, &m.Status, &m.LockedUntil, &m.BanReason)
+	if err != nil {
+		return nil, err
+	}
+	m.Status = s.effectiveStatus(ctx, targetID, m.Status, m.LockedUntil)
+	if m.Status != "suspended" {
+		m.BanReason = nil
+		m.LockedUntil = nil
+	}
+	return &m, nil
 }
 
 // likedHiddenFor reports whether the target's liked posts should be hidden from

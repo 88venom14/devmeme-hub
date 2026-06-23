@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, Link as LinkIcon } from 'lucide-react';
+import { Calendar, Link as LinkIcon, ShieldCheck, Ban } from 'lucide-react';
 
 const GithubIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -22,9 +22,47 @@ const TwitchProfileIcon = () => (
 );
 import { api } from '../lib/api';
 import type { Profile, PostWithMeta } from '../types';
+import type { ProfileModeration } from '../types/profile';
 import PostCard from '../components/feed/PostCard';
 import PostGrid from '../components/feed/PostGrid';
 import { useSessionContext } from '../context/SessionContext';
+
+const ROLE_LABEL: Record<ProfileModeration['role'], string> = {
+  user: 'Пользователь',
+  moderator: 'Модератор',
+  admin: 'Главный админ',
+};
+
+// Visible only to moderators/admins (the backend attaches `moderation` only for
+// them): shows the account's role and, if it is banned, the ban details.
+const ModerationBanner: React.FC<{ moderation: ProfileModeration }> = ({ moderation }) => {
+  const banned = moderation.status === 'suspended';
+  const roleColor = moderation.role === 'admin' ? 'var(--accent)' : moderation.role === 'moderator' ? '#d08700' : 'var(--text-3)';
+  return (
+    <div style={{
+      marginTop: 12, padding: '10px 12px', borderRadius: 8,
+      border: `1px solid ${banned ? 'var(--error)' : 'var(--border)'}`,
+      background: 'var(--bg-2)',
+      display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: roleColor, fontWeight: 600 }}>
+          <ShieldCheck size={15} /> {ROLE_LABEL[moderation.role]}
+        </span>
+        {banned ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--error)', fontFamily: 'var(--font-mono)', border: '1px solid var(--error)', borderRadius: 6, padding: '1px 7px' }}>
+            <Ban size={13} /> ЗАБАНЕН{moderation.locked_until ? ` до ${new Date(moderation.locked_until).toLocaleString('ru-RU')}` : ' (навсегда)'}
+          </span>
+        ) : (
+          <span style={{ color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>не забанен</span>
+        )}
+      </div>
+      {banned && moderation.ban_reason && (
+        <div style={{ color: 'var(--text-2)' }}>Причина: {moderation.ban_reason}</div>
+      )}
+    </div>
+  );
+};
 
 const ProfilePage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
@@ -144,6 +182,8 @@ const ProfilePage: React.FC = () => {
           <div style={{ marginTop: '16px' }}>
             <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>{profile.display_name || profile.username}</h1>
             <div className="text-secondary" style={{ fontSize: '16px' }}>@{profile.username}</div>
+
+            {profile.moderation && <ModerationBanner moderation={profile.moderation} />}
 
             {profile.bio && <p style={{ marginTop: '16px' }}>{profile.bio}</p>}
 

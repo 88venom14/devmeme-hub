@@ -1,15 +1,24 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShieldCheck, FileText, Gamepad2 } from 'lucide-react';
+import { ShieldCheck, FileText, Gamepad2, Users } from 'lucide-react';
+import { useSessionContext } from '@/context/SessionContext';
 
-const TABS = [
+// Posts/games moderation is admin-only; user moderation (bans) is also open to
+// moderators. The tab bar reflects what the current role can actually reach.
+const ADMIN_TABS = [
   { to: '/admin/posts', label: 'Посты', icon: FileText },
   { to: '/admin/games', label: 'Игры', icon: Gamepad2 },
+];
+const SHARED_TABS = [
+  { to: '/admin/users', label: 'Пользователи', icon: Users },
 ];
 
 /** Shared header + tab bar for the admin panel sections. */
 const AdminNav: React.FC = () => {
   const location = useLocation();
+  const session = useSessionContext();
+  const isAdmin = session?.user.role === 'admin';
+  const TABS = isAdmin ? [...ADMIN_TABS, ...SHARED_TABS] : SHARED_TABS;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>

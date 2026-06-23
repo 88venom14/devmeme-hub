@@ -77,6 +77,24 @@ export type RegisterResult =
   | { kind: 'session'; token: string; user: AppSession['user']; profile: Profile }
   | { kind: 'verification'; email: string };
 
+export type UserRole = 'user' | 'moderator' | 'admin';
+
+// AdminUser is the moderation-panel projection returned by the /api/admin/users
+// endpoints. ban_reason/locked_until are non-null while a ban is in effect.
+export type AdminUser = {
+  id: string;
+  email: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  role: UserRole;
+  status: 'pending' | 'active' | 'suspended';
+  locked_until: string | null;
+  ban_reason: string | null;
+  ban_by: string | null;
+  created_at: string;
+};
+
 export type UserSettings = {
   notify_likes: boolean;
   notify_comments: boolean;
@@ -425,6 +443,35 @@ export const api = {
 
   adminDeletePost(id: string) {
     return request<void>(`/api/admin/posts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
+  // ── Admin: user moderation ──
+  adminListUsers(q?: string) {
+    const search = new URLSearchParams();
+    search.set('limit', '100');
+    if (q) search.set('q', q);
+    return request<AdminUser[]>(`/api/admin/users?${search.toString()}`);
+  },
+
+  // Grant/revoke the moderator role (главный админ only).
+  adminSetUserRole(id: string, role: 'user' | 'moderator') {
+    return request<AdminUser>(`/api/admin/users/${encodeURIComponent(id)}/role`, {
+      method: 'POST',
+      body: JSON.stringify({ role }),
+    });
+  },
+
+  // Ban a user. durationDays 0 = permanent; a positive value sets a ban that
+  // auto-expires server-side.
+  adminBanUser(id: string, reason: string, durationDays = 0) {
+    return request<AdminUser>(`/api/admin/users/${encodeURIComponent(id)}/ban`, {
+      method: 'POST',
+      body: JSON.stringify({ reason, duration_days: durationDays }),
+    });
+  },
+
+  adminUnbanUser(id: string) {
+    return request<AdminUser>(`/api/admin/users/${encodeURIComponent(id)}/unban`, { method: 'POST' });
   },
 
   listConversations() {

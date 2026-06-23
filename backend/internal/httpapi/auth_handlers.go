@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"devmeme-hub/backend/internal/auth"
 
@@ -149,12 +150,13 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 	var user User
 	var passwordHash string
+	var lockedUntil *time.Time
 	err := s.db.QueryRow(r.Context(), `
-		SELECT id::text, email::text, role, status, metadata, created_at, updated_at, COALESCE(password_hash, '')
+		SELECT id::text, email::text, role, status, metadata, created_at, updated_at, COALESCE(password_hash, ''), locked_until
 		FROM users
 		WHERE email = $1
 	`, req.Email).Scan(
-		&user.ID, &user.Email, &user.Role, &user.Status, &user.Metadata, &user.CreatedAt, &user.UpdatedAt, &passwordHash,
+		&user.ID, &user.Email, &user.Role, &user.Status, &user.Metadata, &user.CreatedAt, &user.UpdatedAt, &passwordHash, &lockedUntil,
 	)
 	// Distinguish a real DB error (500) from "no such user" (401) before doing
 	// the password check — the previous combined condition masked DB errors as
@@ -174,7 +176,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid email or password")
 		return
 	}
-	if user.Status != "active" {
+	if s.effectiveStatus(r.Context(), user.ID, user.Status, lockedUntil) != "active" {
 		writeError(w, http.StatusForbidden, "user is not active")
 		return
 	}

@@ -16,6 +16,16 @@ export type Profile = {
   is_private?: boolean;
   // Set by the backend when the owner hid their liked posts from other viewers.
   liked_hidden?: boolean;
+  // Populated by the backend only when the viewer is a moderator or admin:
+  // the account's role and ban state, for the moderation banner on the profile.
+  moderation?: ProfileModeration;
+};
+
+export type ProfileModeration = {
+  role: 'user' | 'moderator' | 'admin';
+  status: 'pending' | 'active' | 'suspended';
+  ban_reason?: string | null;
+  locked_until?: string | null;
 };
 
 export type MyProfile = {

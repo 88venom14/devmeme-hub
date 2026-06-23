@@ -124,6 +124,21 @@ func (s *Server) Routes() http.Handler {
 			// Post moderation.
 			r.Get("/admin/posts", s.adminListPosts)
 			r.Delete("/admin/posts/{postID}", s.adminDeletePost)
+
+			// Role management — главный админ only: grant/revoke the moderator
+			// role. The 'admin' role itself is bootstrapped out-of-band.
+			r.Post("/admin/users/{userID}/role", s.adminSetUserRole)
+		})
+
+		// User moderation — listing and bans are available to moderators and
+		// admins; the per-target rules (who may ban whom) are enforced in the
+		// handlers via canBan.
+		r.Group(func(r chi.Router) {
+			r.Use(s.requireUser)
+			r.Use(s.requireModerator)
+			r.Get("/admin/users", s.adminListUsers)
+			r.Post("/admin/users/{userID}/ban", s.adminBanUser)
+			r.Post("/admin/users/{userID}/unban", s.adminUnbanUser)
 		})
 
 		r.Get("/posts", s.listPosts)

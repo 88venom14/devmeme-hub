@@ -34,6 +34,18 @@ type Profile struct {
 	// LikedHidden is set on profile-view responses when the owner hid their
 	// liked posts and the viewer is not the owner.
 	LikedHidden bool `json:"liked_hidden,omitempty"`
+	// Moderation is populated only when the viewer is a moderator or admin,
+	// exposing the account's role and ban state on the profile page.
+	Moderation *ProfileModeration `json:"moderation,omitempty"`
+}
+
+// ProfileModeration is the moderator-only view of an account's role and ban
+// state, attached to a profile response for privileged viewers.
+type ProfileModeration struct {
+	Role        string     `json:"role"`
+	Status      string     `json:"status"`
+	BanReason   *string    `json:"ban_reason,omitempty"`
+	LockedUntil *time.Time `json:"locked_until,omitempty"`
 }
 
 type Tag struct {

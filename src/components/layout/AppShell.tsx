@@ -204,7 +204,7 @@ const AppShell: React.FC<AppShellProps> = () => {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="11" x2="10" y2="11" /><line x1="8" y1="9" x2="8" y2="13" /><line x1="15" y1="12" x2="15.01" y2="12" /><line x1="18" y1="10" x2="18.01" y2="10" /><rect x="2" y="6" width="20" height="12" rx="2" /></svg>
               Мои игры
             </Link>
-            {session.user.role === 'admin' && (
+            {(session.user.role === 'admin' || session.user.role === 'moderator') && (
               <Link to="/admin" className={`sub-nav-link${isActive('/admin') ? ' active' : ''}`}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
                 Админ-панель
@@ -234,7 +234,7 @@ const AppShell: React.FC<AppShellProps> = () => {
             maxHeight: `calc(100vh - ${navHidden ? 32 : navHeight + 32}px)`,
           }}
         >
-          {session && myProfile && <UserCard myProfile={myProfile} location={location} isAdmin={session.user.role === 'admin'} />}
+          {session && myProfile && <UserCard myProfile={myProfile} location={location} isAdmin={session.user.role === 'admin' || session.user.role === 'moderator'} />}
           <BrowseTags />
           {!location.pathname.startsWith('/chat') && <ChatWidget />}
         </aside>

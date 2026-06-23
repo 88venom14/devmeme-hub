@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"devmeme-hub/backend/internal/auth"
 
@@ -33,7 +34,8 @@ func (s *Server) requireUser(next http.Handler) http.Handler {
 		// suspended or deleted after their token was issued must lose access
 		// immediately, not only when the token expires.
 		var status string
-		err = s.db.QueryRow(r.Context(), `SELECT status FROM users WHERE id = $1`, claims.UserID).Scan(&status)
+		var lockedUntil *time.Time
+		err = s.db.QueryRow(r.Context(), `SELECT status, locked_until FROM users WHERE id = $1`, claims.UserID).Scan(&status, &lockedUntil)
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeError(w, http.StatusUnauthorized, "user no longer exists")
 			return
@@ -42,7 +44,7 @@ func (s *Server) requireUser(next http.Handler) http.Handler {
 			writeError(w, http.StatusInternalServerError, "could not verify account")
 			return
 		}
-		if status != "active" {
+		if s.effectiveStatus(r.Context(), claims.UserID, status, lockedUntil) != "active" {
 			writeError(w, http.StatusForbidden, "account is not active")
 			return
 		}
@@ -73,10 +75,34 @@ func (s *Server) optionalUser(next http.Handler) http.Handler {
 	})
 }
 
+// effectiveStatus lazily lifts an expired temporary ban: a 'suspended' account
+// whose locked_until has passed is reactivated (and its ban metadata cleared)
+// and reported as active. Permanent bans (locked_until NULL) and all other
+// statuses are returned unchanged. This is what makes time-limited bans expire
+// on their own without a background job.
+func (s *Server) effectiveStatus(ctx context.Context, id, status string, lockedUntil *time.Time) string {
+	if status == "suspended" && lockedUntil != nil && !lockedUntil.After(time.Now()) {
+		_, _ = s.db.Exec(ctx,
+			`UPDATE users SET status = 'active', locked_until = NULL, metadata = metadata - 'ban' WHERE id = $1 AND status = 'suspended'`,
+			id)
+		return "active"
+	}
+	return status
+}
+
+// userRole returns the current DB role for a user. Used by the role-gating
+// middleware and by the moderation handlers to enforce the action hierarchy.
+func (s *Server) userRole(ctx context.Context, id string) (string, error) {
+	var role string
+	err := s.db.QueryRow(ctx, `SELECT role FROM users WHERE id = $1`, id).Scan(&role)
+	return role, err
+}
+
 // requireAdmin must be chained after requireUser. It confirms the current user
-// still has the 'admin' role with a fresh DB lookup on every request, so a
-// demoted user cannot keep acting as admin with an already-issued token (the
-// JWT itself carries no role claim). UI gating is never trusted on its own.
+// still has the 'admin' role (главный админ) with a fresh DB lookup on every
+// request, so a demoted user cannot keep acting as admin with an already-issued
+// token (the JWT itself carries no role claim). UI gating is never trusted on
+// its own.
 func (s *Server) requireAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, ok := userFromContext(r.Context())
@@ -84,10 +110,28 @@ func (s *Server) requireAdmin(next http.Handler) http.Handler {
 			writeError(w, http.StatusUnauthorized, "missing bearer token")
 			return
 		}
-		var role string
-		err := s.db.QueryRow(r.Context(), `SELECT role FROM users WHERE id = $1`, user.ID).Scan(&role)
+		role, err := s.userRole(r.Context(), user.ID)
 		if err != nil || role != "admin" {
 			writeError(w, http.StatusForbidden, "admin access required")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// requireModerator must be chained after requireUser. It allows both the
+// moderator role (the grantable "админ") and the admin role (главный админ);
+// the finer per-target rules live in the handlers (see canBan).
+func (s *Server) requireModerator(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, ok := userFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "missing bearer token")
+			return
+		}
+		role, err := s.userRole(r.Context(), user.ID)
+		if err != nil || (role != "admin" && role != "moderator") {
+			writeError(w, http.StatusForbidden, "moderator access required")
 			return
 		}
 		next.ServeHTTP(w, r)

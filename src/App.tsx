@@ -28,6 +28,7 @@ const GameUploadPage = React.lazy(() => import('./pages/games/GameUploadPage'));
 const MyGamesPage = React.lazy(() => import('./pages/games/MyGamesPage'));
 const AdminGamesPage = React.lazy(() => import('./pages/admin/AdminGamesPage'));
 const AdminPostsPage = React.lazy(() => import('./pages/admin/AdminPostsPage'));
+const AdminUsersPage = React.lazy(() => import('./pages/admin/AdminUsersPage'));
 
 import AppShell from './components/layout/AppShell';
 import AdminRoute from './components/common/AdminRoute';
@@ -104,7 +105,14 @@ const App: React.FC = () => {
                 path="/me/games"
                 element={session ? <MyGamesPage /> : <Navigate to="/login" replace />}
               />
-              <Route path="/admin" element={<Navigate to="/admin/posts" replace />} />
+              <Route
+                path="/admin"
+                element={<Navigate to={session?.user.role === 'moderator' ? '/admin/users' : '/admin/posts'} replace />}
+              />
+              <Route
+                path="/admin/users"
+                element={<AdminRoute roles={['admin', 'moderator']}><AdminUsersPage /></AdminRoute>}
+              />
               <Route
                 path="/admin/posts"
                 element={<AdminRoute><AdminPostsPage /></AdminRoute>}
