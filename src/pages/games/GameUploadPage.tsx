@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Upload, FileArchive, Image as ImageIcon } from 'lucide-react';
-import { useGame, useUploadGame, useUpdateGame } from '../hooks/useGames';
-import { uploadPostMedia } from '../lib/storage';
-import { parseTags } from '../lib/tags';
-import { labelStyle, inputStyle } from '../styles/forms';
+import { useGame, useUploadGame, useUpdateGame } from '@/hooks/useGames';
+import { uploadPostMedia } from '@/lib/storage';
+import { parseTags } from '@/lib/tags';
+import { labelStyle, inputStyle } from '@/styles/forms';
 
 const MAX_TAGS = 10;
 

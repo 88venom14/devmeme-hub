@@ -6,7 +6,7 @@ import {
   isValidYoutubeUrl,
   isValidTwitchUrl,
   validateUsername,
-} from './validation';
+} from '@/lib/validation';
 
 describe('LIMITS', () => {
   it('requires a password of at least 8 chars (matches the Go backend)', () => {

@@ -3,14 +3,16 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useSession } from './hooks/useSession';
 import { SessionContext } from './context/SessionContext';
-import ErrorBoundary from './components/ErrorBoundary';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 import './styles/variables.css';
 import './styles/global.css';
 import './styles/layout.css';
 
 const FeedPage = React.lazy(() => import('./pages/FeedPage'));
-const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const LoginPage = React.lazy(() => import('./pages/auth/LoginPage'));
+const AuthCallbackPage = React.lazy(() => import('./pages/auth/AuthCallbackPage'));
+const VerifyEmailPage = React.lazy(() => import('./pages/auth/VerifyEmailPage'));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const CreatePostPage = React.lazy(() => import('./pages/CreatePostPage'));
 const PostDetailPage = React.lazy(() => import('./pages/PostDetailPage'));
@@ -20,15 +22,15 @@ const FollowingPage = React.lazy(() => import('./pages/FollowingPage'));
 const TrendingPage = React.lazy(() => import('./pages/TrendingPage'));
 const TagPage = React.lazy(() => import('./pages/TagPage'));
 const ChatPage = React.lazy(() => import('./pages/ChatPage'));
-const GamesPage = React.lazy(() => import('./pages/GamesPage'));
-const GamePlayPage = React.lazy(() => import('./pages/GamePlayPage'));
-const GameUploadPage = React.lazy(() => import('./pages/GameUploadPage'));
-const MyGamesPage = React.lazy(() => import('./pages/MyGamesPage'));
-const AdminGamesPage = React.lazy(() => import('./pages/AdminGamesPage'));
-const AdminPostsPage = React.lazy(() => import('./pages/AdminPostsPage'));
+const GamesPage = React.lazy(() => import('./pages/games/GamesPage'));
+const GamePlayPage = React.lazy(() => import('./pages/games/GamePlayPage'));
+const GameUploadPage = React.lazy(() => import('./pages/games/GameUploadPage'));
+const MyGamesPage = React.lazy(() => import('./pages/games/MyGamesPage'));
+const AdminGamesPage = React.lazy(() => import('./pages/admin/AdminGamesPage'));
+const AdminPostsPage = React.lazy(() => import('./pages/admin/AdminPostsPage'));
 
 import AppShell from './components/layout/AppShell';
-import AdminRoute from './components/AdminRoute';
+import AdminRoute from './components/common/AdminRoute';
 
 // Module-level singleton — never recreated across renders
 const queryClient = new QueryClient({
@@ -79,6 +81,9 @@ const App: React.FC = () => {
               path="/login"
               element={!session ? <LoginPage /> : <Navigate to="/feed" replace />}
             />
+            {/* OAuth return + email verification — public (no session required) */}
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/" element={<Navigate to="/feed" replace />} />
 
             <Route element={<AppShell session={session} />}>

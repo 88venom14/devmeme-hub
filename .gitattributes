@@ -1,0 +1,37 @@
+# Normalize line endings: store text as LF in the repo and check out as LF on
+# all platforms. Without this, Windows checkouts get CRLF (core.autocrlf) and
+# any tool that rewrites a file as LF makes git flag the whole file as changed.
+* text=auto eol=lf
+
+# Explicit LF for source / shell scripts (scripts must stay LF to run in the
+# Linux containers).
+*.go      text eol=lf
+*.ts      text eol=lf
+*.tsx     text eol=lf
+*.js      text eol=lf
+*.jsx     text eol=lf
+*.json    text eol=lf
+*.css     text eol=lf
+*.html    text eol=lf
+*.md      text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.sh      text eol=lf
+*.sql     text eol=lf
+Caddyfile text eol=lf
+Dockerfile text eol=lf
+
+# Treat binary assets as binary (no EOL conversion, no diff).
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.svg  text eol=lf
+*.ico  binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+*.zip  binary
+*.mp4  binary
+*.webm binary

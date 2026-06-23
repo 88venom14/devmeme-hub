@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseTags } from './tags';
+import { parseTags } from '@/lib/tags';
 
 describe('parseTags', () => {
   it('splits on commas and whitespace', () => {

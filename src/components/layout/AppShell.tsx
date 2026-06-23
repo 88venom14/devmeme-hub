@@ -6,7 +6,7 @@ import SearchBar from './SearchBar';
 import { useTopTags } from '../../hooks/useTopTags';
 import { useMyProfile } from '../../hooks/useMyProfile';
 import { useSessionContext } from '../../context/SessionContext';
-import Avatar from '../Avatar';
+import Avatar from '@/components/common/Avatar';
 import ChatWidget from '../chat/ChatWidget';
 
 const StableOutlet = memo(() => <Outlet />);

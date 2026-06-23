@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Gamepad2, Upload, Search } from 'lucide-react';
-import { useGames } from '../hooks/useGames';
-import { useSessionContext } from '../context/SessionContext';
-import GamesGrid from '../components/games/GamesGrid';
-import { inputStyle } from '../styles/forms';
+import { useGames } from '@/hooks/useGames';
+import { useSessionContext } from '@/context/SessionContext';
+import GamesGrid from '@/components/games/GamesGrid';
+import { inputStyle } from '@/styles/forms';
 
 const GamesPage: React.FC = () => {
   const session = useSessionContext();

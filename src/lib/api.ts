@@ -6,6 +6,13 @@ import type {
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:8080';
 export const TOKEN_KEY = 'devmeme_token';
 
+// Full URL the browser navigates to (top-level redirect) to start an OAuth
+// flow. The backend handles the provider dance and redirects back to
+// /auth/callback#token=… (see AuthCallbackPage).
+export function oauthStartUrl(provider: 'github'): string {
+  return `${API_BASE_URL}/api/auth/${provider}/start`;
+}
+
 // Absolute URL to a game's sandboxed entry file, served from the API origin's
 // /games-static route. Loaded only inside the sandboxed GameFrame iframe.
 export function gameEntryUrl(game: Pick<Game, 'slug' | 'entry_path'>): string {
@@ -63,6 +70,12 @@ export type AppSession = {
   user: { id: string; email: string; role?: string };
   profile?: Profile | null;
 };
+
+// register() either logs the user in (verification disabled) or asks them to
+// confirm their email first (verification active). Discriminated by `kind`.
+export type RegisterResult =
+  | { kind: 'session'; token: string; user: AppSession['user']; profile: Profile }
+  | { kind: 'verification'; email: string };
 
 export type UserSettings = {
   notify_likes: boolean;
@@ -131,13 +144,37 @@ export const api = {
     return data;
   },
 
-  async register(email: string, password: string, username: string) {
-    const data = await request<{ token: string; user: AppSession['user']; profile: Profile }>('/api/auth/register', {
+  async register(email: string, password: string, username: string): Promise<RegisterResult> {
+    const data = await request<{
+      token?: string;
+      user?: AppSession['user'];
+      profile?: Profile;
+      status?: string;
+      email?: string;
+    }>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, username, display_name: username }),
     });
-    setToken(data.token);
-    return data;
+    // When email verification is active the backend does NOT log the user in —
+    // it returns a status + email and expects the client to prompt for inbox.
+    if (data.status === 'verification_sent' || data.status === 'verification_pending') {
+      return { kind: 'verification', email: data.email ?? email };
+    }
+    setToken(data.token!);
+    return { kind: 'session', token: data.token!, user: data.user!, profile: data.profile! };
+  },
+
+  // Consume the emailed verification token; activates a pending account.
+  verifyEmail(token: string) {
+    return request<{ status: string }>(`/api/auth/verify?token=${encodeURIComponent(token)}`);
+  },
+
+  // Re-send the verification email. Always resolves 200 (no email enumeration).
+  resendVerification(email: string) {
+    return request<{ status: string }>('/api/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
   },
 
   async me(): Promise<AppSession> {

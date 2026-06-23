@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import GameFrame from './GameFrame';
+import GameFrame from '@/components/games/GameFrame';
 
 // GameFrame is the single source of truth for isolating untrusted games. These
 // tests pin the sandbox contract so a regression can't silently weaken it.

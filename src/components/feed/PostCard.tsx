@@ -8,8 +8,8 @@ import { api } from '../../lib/api';
 import type { GithubRepoData, PostWithMeta } from '../../types';
 import { useSessionContext } from '../../context/SessionContext';
 import { useInvalidatePosts } from '../../hooks/useInvalidatePosts';
-import MarkdownContent from '../MarkdownContent';
-import Avatar from '../Avatar';
+import MarkdownContent from '@/components/common/MarkdownContent';
+import Avatar from '@/components/common/Avatar';
 import VideoPlayer from '../ui/VideoPlayer';
 
 interface PostCardProps {

@@ -6,7 +6,7 @@ import { ru } from 'date-fns/locale';
 import { api } from '../lib/api';
 import type { Comment } from '../types';
 import PostCard from '../components/feed/PostCard';
-import Avatar from '../components/Avatar';
+import Avatar from '@/components/common/Avatar';
 import { useSessionContext } from '../context/SessionContext';
 import { useMyProfile } from '../hooks/useMyProfile';
 import { useInvalidatePosts } from '../hooks/useInvalidatePosts';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, EyeOff, ScrollText } from 'lucide-react';
-import Avatar from '../Avatar';
+import Avatar from '@/components/common/Avatar';
 import GameFrame from './GameFrame';
 import GameStatusBadge from './GameStatusBadge';
 import ModerationActions from './ModerationActions';

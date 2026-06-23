@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build && node deploy.mjs --prepare-pages",
     "typecheck": "tsc --noEmit",
+    "typecheck:tests": "tsc -p tests/tsconfig.json",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
