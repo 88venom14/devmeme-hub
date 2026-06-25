@@ -1,6 +1,7 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import react from "@vitejs/plugin-react";
+import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -8,7 +9,15 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig({
   base: '/',
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Opt-in bundle analysis: `ANALYZE=1 npm run build` writes bundle-stats.html
+    // (gzip + brotli sizes) to the project root. Off by default so it never
+    // lands in dist/ or affects the gh-pages deploy.
+    ...(process.env.ANALYZE
+      ? [visualizer({ filename: 'bundle-stats.html', gzipSize: true, brotliSize: true })]
+      : []),
+  ],
   server: {
     watch: {
       usePolling: true,
